@@ -1,4 +1,4 @@
-import { MAIN_PAGE, NOT_FOUND_PAGE } from "@constants";
+import { MAIN_PAGE  } from "@constants";
  
 import WeatherPage from "@pages/MainPage";
 

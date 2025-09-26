@@ -1,4 +1,4 @@
-import styled, { css } from 'styled-components';
+import styled from 'styled-components';
 
 export const ColumnContainer = styled.div<{ $isActive?: boolean; $isOver?: boolean }>`
   background: #f0f0f0;

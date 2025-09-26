@@ -60,8 +60,7 @@ export const Board: React.FC = () => {
   );
 
   const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  // Колонки
+ 
   const addColumn = () => {
     const newColumn: ColumnType = {
       id: generateId(),
