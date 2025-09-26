@@ -1,0 +1,44 @@
+{
+    "coord": {
+        "lon": 28.5119,
+        "lat": 54.2243
+    },
+    "weather": [
+        {
+            "id": 800,
+            "main": "Clear",
+            "description": "ясно",
+            "icon": "01n"
+        }
+    ],
+    "base": "stations",
+    "main": {
+        "temp": 13.23,
+        "feels_like": 12.98,
+        "temp_min": 13.23,
+        "temp_max": 13.23,
+        "pressure": 1009,
+        "humidity": 91,
+        "sea_level": 1009,
+        "grnd_level": 988
+    },
+    "visibility": 10000,
+    "wind": {
+        "speed": 4.52,
+        "deg": 297,
+        "gust": 10.62
+    },
+    "clouds": {
+        "all": 5
+    },
+    "dt": 1755458595,
+    "sys": {
+        "country": "BY",
+        "sunrise": 1755398809,
+        "sunset": 1755452013
+    },
+    "timezone": 10800,
+    "id": 630376,
+    "name": "Борисов",
+    "cod": 200
+}

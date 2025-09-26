@@ -1,0 +1,46 @@
+[
+    {
+        "name": "Nay",
+        "local_names": {
+            "fr": "Nay",
+            "oc": "Nai",
+            "uk": "Не"
+        },
+        "lat": 43.1798743,
+        "lon": -0.2621768,
+        "country": "FR",
+        "state": "Nouvelle-Aquitaine"
+    },
+    {
+        "name": "Ne",
+        "lat": 44.3519258,
+        "lon": 9.4402573,
+        "country": "IT",
+        "state": "Liguria"
+    },
+    {
+        "name": "Nay",
+        "local_names": {
+            "fr": "Nay",
+            "uk": "Не"
+        },
+        "lat": 49.2395702,
+        "lon": -1.3734337,
+        "country": "FR",
+        "state": "Normandy"
+    },
+    {
+        "name": "Northeast",
+        "lat": 45.0157576,
+        "lon": -93.2512895,
+        "country": "US",
+        "state": "Minnesota"
+    },
+    {
+        "name": "Ne",
+        "lat": 44.3552173,
+        "lon": 9.3882892,
+        "country": "IT",
+        "state": "Liguria"
+    }
+]

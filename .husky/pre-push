@@ -1,0 +1,9 @@
+#!/usr/bin/env sh
+yarn run test:all
+
+if [ $? -ne 0 ]; then
+  echo "Some test failed"
+  exit 1
+fi
+echo "Tests were passed successfuly"
+exit 0

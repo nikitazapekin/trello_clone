@@ -1,0 +1,26 @@
+[
+    {
+        "name": "Barysaw",
+        "local_names": {
+            "eo": "Borisov",
+            "et": "Barõssav",
+            "en": "Barysaw",
+            "fr": "Borissov",
+            "lt": "Barysavas",
+            "be": "Барысаў",
+            "ascii": "Barysaŭ",
+            "pl": "Borysów",
+            "sr": "Борисов",
+            "nl": "Borisov",
+            "uk": "Барисав",
+            "ru": "Борисов",
+            "feature_name": "Barysaŭ",
+            "es": "Borisov",
+            "de": "Baryssau"
+        },
+        "lat": 54.2240665,
+        "lon": 28.5117849,
+        "country": "BY",
+        "state": "Minsk Region"
+    }
+]
