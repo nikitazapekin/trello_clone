@@ -86,8 +86,7 @@ export const Board: React.FC = () => {
     setBoardData(prev => {
       const column = prev.columns.find(col => col.id === columnId);
       if (!column) return prev;
-
-      // Удаляем карточки этой колонки
+ 
       const remainingCards = prev.cards.filter(card => card.columnId !== columnId);
 
       return {
@@ -96,8 +95,7 @@ export const Board: React.FC = () => {
       };
     });
   };
-
-  // Карточки
+ 
   const openCreateModal = (columnId: string) => {
     setModalState({
       isOpen: true,
@@ -160,7 +158,7 @@ export const Board: React.FC = () => {
   };
 
 const handleDragOver = (event: DragOverEvent) => {
-  const { active, over } = event;
+  const {   over } = event;
   
   if (!over) {
     setActiveColumnId(null);
@@ -174,15 +172,13 @@ const handleDragOver = (event: DragOverEvent) => {
     setActiveColumnId(overColumn.id);
     return;
   }
-
-  // Если над карточкой, находим её колонку
+ 
   const overCard = boardData.cards.find(card => card.id === overId);
   if (overCard) {
     setActiveColumnId(overCard.columnId);
     return;
   }
-
-  // Если над пустой областью колонки (обработка через data из useDroppable)
+ 
   if (over.data?.current?.type === 'column') {
     setActiveColumnId(overId);
   }
