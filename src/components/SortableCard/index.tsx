@@ -28,7 +28,7 @@ export const SortableCard: React.FC<SortableCardProps> = ({ card, onClick }) => 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: transition || 'transform 200ms ease',
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.6 : 1,
   };
 
   return (
