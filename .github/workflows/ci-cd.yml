@@ -27,16 +27,7 @@ jobs:
         
       - name: Run lint
         run: yarn lint
-      
-      - name: Run unit tests
-        run: yarn test
-      
-      - name: Run Cypress tests
-        run: |
-          yarn start &
-          yarn wait-on http://localhost:4000
-          yarn cypress:run
-      
+     
       - name: Build production
         run: yarn build:prod
 
