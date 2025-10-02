@@ -1,4 +1,3 @@
-
 // Board.tsx
 import React, { useState, useCallback } from 'react';
 import { Column } from '../Column';
@@ -6,9 +5,9 @@ import type { Card as CardType, Column as ColumnType } from '../../types';
 
 export const Board: React.FC = () => {
   const [columns, setColumns] = useState<ColumnType[]>([
-    { id: 'col1', title: 'To Do', cardIds: [] , order: 1  },
-    { id: 'col2', title: 'In Progress', cardIds: [], order: 2 },
-    { id: 'col3', title: 'Done', cardIds: [], order: 3}
+    { id: 'col1', title: 'To Do', cardIds: [], order: 1 },
+    { id: 'col2', title: 'In Progress', cardIds: [] , order: 2},
+    { id: 'col3', title: 'Done', cardIds: [], order: 3 }
   ]);
 
   const [cards, setCards] = useState<CardType[]>([
@@ -59,84 +58,60 @@ export const Board: React.FC = () => {
   ]);
 
   const [draggedCard, setDraggedCard] = useState<{id: string, columnId: string} | null>(null);
-  const [lastHoveredCardId, setLastHoveredCardId] = useState<string | null>(null);
-  const [hoverHistory, setHoverHistory] = useState<string[]>([]);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
 
   const handleDragStart = useCallback((cardId: string, columnId: string) => {
     setDraggedCard({ id: cardId, columnId });
-    setLastHoveredCardId(null);
-    setHoverHistory([]);
-    console.log(`Начало перетаскивания карточки: ${cardId}`);
+    console.log(`Начало перетаскивания карточки: ${cardId} из колонки: ${columnId}`);
   }, []);
 
   const handleDragEnd = useCallback(() => {
     console.log('Завершение перетаскивания');
-    console.log('История наведения:', hoverHistory);
-    
-    if (draggedCard && lastHoveredCardId && draggedCard.id !== lastHoveredCardId) {
-      console.log(`Обмен позициями: ${draggedCard.id} ↔ ${lastHoveredCardId}`);
-      
-      setCards(prevCards => {
-        const newCards = [...prevCards];
-        const draggedIndex = newCards.findIndex(card => card.id === draggedCard.id);
-        const targetIndex = newCards.findIndex(card => card.id === lastHoveredCardId);
-        
-        if (draggedIndex !== -1 && targetIndex !== -1) {
-          const draggedCardData = newCards[draggedIndex];
-          const targetCardData = newCards[targetIndex];
-          
-          // Сохраняем оригинальные columnId
-          const draggedColumnId = draggedCardData.columnId;
-          const targetColumnId = targetCardData.columnId;
-          
-          // Меняем карточки местами с обновлением columnId
-          newCards[draggedIndex] = { 
-            ...targetCardData, 
-            columnId: draggedColumnId,
-            updatedAt: new Date().toISOString()
-          };
-          newCards[targetIndex] = { 
-            ...draggedCardData, 
-            columnId: targetColumnId,
-            updatedAt: new Date().toISOString()
-          };
-          
-          console.log('Карточки успешно поменялись местами');
-        }
-        
-        return newCards;
-      });
-    }
-    
     setDraggedCard(null);
-    setLastHoveredCardId(null);
-    setHoverHistory([]);
-  }, [draggedCard, lastHoveredCardId, hoverHistory]);
-
-  const handleDragOver = useCallback((targetCardId: string) => {
-    if (draggedCard && draggedCard.id !== targetCardId) {
-      setLastHoveredCardId(targetCardId);
-      setHoverHistory(prev => {
-        const newHistory = [...prev, targetCardId];
-        console.log(`Наведение на карточку: ${targetCardId}`);
-        console.log('Полная история наведения:', newHistory);
-        return newHistory;
-      });
-    }
-  }, [draggedCard]);
-
-  const handleDrop = useCallback((draggedCardId: string, targetCardId: string) => {
-    console.log(`DROP: Перетаскиваемая ${draggedCardId} → Целевая ${targetCardId}`);
   }, []);
 
-  const handleDropToEmpty = useCallback((draggedCardId: string, targetColumnId: string) => {
-    console.log(`DROP TO EMPTY: Карточка ${draggedCardId} → Колонка ${targetColumnId}`);
+  const handleDrop = useCallback((targetCardId: string, targetColumnId: string) => {
+    console.log(`DROP: Перетаскиваемая ${draggedCard?.id} → Целевая ${targetCardId} в колонке ${targetColumnId}`);
     
+    if (!draggedCard) return;
+
+    setCards(prevCards => {
+      const newCards = [...prevCards];
+      
+      // Находим индексы карточек
+      const draggedIndex = newCards.findIndex(card => card.id === draggedCard.id);
+      const targetIndex = newCards.findIndex(card => card.id === targetCardId);
+      
+      if (draggedIndex === -1 || targetIndex === -1) return prevCards;
+
+      const draggedCardData = newCards[draggedIndex];
+      const targetCardData = newCards[targetIndex];
+
+      // Если карточки в разных колонках - просто меняем колонку у перетаскиваемой
+      if (draggedCardData.columnId !== targetCardData.columnId) {
+        newCards[draggedIndex] = {
+          ...draggedCardData,
+          columnId: targetCardData.columnId,
+          updatedAt: new Date().toISOString()
+        };
+      } else {
+        // Если в одной колонке - меняем местами
+        [newCards[draggedIndex], newCards[targetIndex]] = [newCards[targetIndex], newCards[draggedIndex]];
+      }
+      
+      return newCards;
+    });
+  }, [draggedCard]);
+
+  const handleDropToEmpty = useCallback((targetColumnId: string) => {
+    console.log(`DROP TO EMPTY: Карточка ${draggedCard?.id} → Колонка ${targetColumnId}`);
+    
+    if (!draggedCard) return;
+
     setCards(prevCards => 
       prevCards.map(card => 
-        card.id === draggedCardId 
+        card.id === draggedCard.id 
           ? { 
               ...card, 
               columnId: targetColumnId,
@@ -145,7 +120,7 @@ export const Board: React.FC = () => {
           : card
       )
     );
-  }, []);
+  }, [draggedCard]);
 
   const handleAddCard = useCallback((columnId: string) => {
     const newCard: CardType = {
@@ -204,10 +179,8 @@ export const Board: React.FC = () => {
   const handleToggleMultiSelectMode = useCallback(() => {
     setIsMultiSelectMode(prev => {
       if (!prev) {
-        // При включении режима множественного выбора очищаем предыдущий выбор
         setSelectedCards(new Set());
       } else {
-        // При выключении очищаем выбор
         setSelectedCards(new Set());
       }
       return !prev;
@@ -326,8 +299,7 @@ export const Board: React.FC = () => {
       }}>
         <div><strong>Отладка перетаскивания:</strong></div>
         <div>Перетаскиваемая: {draggedCard?.id || 'нет'}</div>
-        <div>Последняя наведенная: {lastHoveredCardId || 'нет'}</div>
-        <div>История наведения: {hoverHistory.join(' → ')}</div>
+        <div>Из колонки: {draggedCard?.columnId || 'нет'}</div>
         <div>Режим выбора: {isMultiSelectMode ? 'ВКЛ' : 'ВЫКЛ'}</div>
         <div>Выбрано карточек: {selectedCards.size}</div>
       </div>
@@ -348,11 +320,9 @@ export const Board: React.FC = () => {
             onToggleCardSelection={handleToggleCardSelection}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
-            onDragOver={handleDragOver}
             onDrop={handleDrop}
             onDropToEmpty={handleDropToEmpty}
             draggedCard={draggedCard}
-            lastHoveredCardId={lastHoveredCardId}
           />
         ))}
         
@@ -363,8 +333,8 @@ export const Board: React.FC = () => {
               const newColumn: ColumnType = {
                 id: `col${Date.now()}`,
                 title: 'Новая колонка',
-                cardIds: [], 
-                order: columns.length+1
+                cardIds: []
+                , order: columns.length+1
               };
               setColumns(prev => [...prev, newColumn]);
             }}
@@ -405,227 +375,3 @@ export const Board: React.FC = () => {
 };
 
 export default Board;
-/* // Board.tsx
-import React, { useState, useCallback } from 'react';
-import { Column } from '../Column';
-import type { Card as CardType, Column as ColumnType } from '../../types';
-
-export const Board: React.FC = () => {
-  const [columns, setColumns] = useState<ColumnType[]>([
-    { id: 'col1', title: 'To Do', cardIds: [] , order: 1,},
-    { id: 'col2', title: 'In Progress', cardIds: [] ,order: 2 },
-    { id: 'col3', title: 'Done', cardIds: [], order: 3 }
-  ]);
-
-  const [cards, setCards] = useState<CardType[]>([
-    { 
-      id: 'card1', 
-      title: 'Задача 1', 
-      description: 'Описание задачи 1',
-      columnId: 'col1',
-      labels: ['важно'],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    { 
-      id: 'card2', 
-      title: 'Задача 2', 
-      description: 'Описание задачи 2',
-      columnId: 'col1',
-      labels: ['срочно'],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    { 
-      id: 'card3', 
-      title: 'Задача 3', 
-      description: 'Описание задачи 3',
-      columnId: 'col2',
-      labels: [],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    { 
-      id: 'card4', 
-      title: 'Задача 4', 
-      description: 'Описание задачи 4',
-      columnId: 'col3',
-      labels: ['исправлено'],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ]);
-
-  const [draggedCard, setDraggedCard] = useState<{id: string, columnId: string} | null>(null);
-  const [lastHoveredCardId, setLastHoveredCardId] = useState<string | null>(null);
-  const [hoverHistory, setHoverHistory] = useState<string[]>([]);
-
-  const handleDragStart = useCallback((cardId: string, columnId: string) => {
-    setDraggedCard({ id: cardId, columnId });
-    setLastHoveredCardId(null);
-    setHoverHistory([]);
-    console.log(`Начало перетаскивания карточки: ${cardId}`);
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    console.log('Завершение перетаскивания');
-    console.log('История наведения:', hoverHistory);
-    
-    if (draggedCard && lastHoveredCardId && draggedCard.id !== lastHoveredCardId) {
-      console.log(`Обмен позициями: ${draggedCard.id} ↔ ${lastHoveredCardId}`);
-      
-      setCards(prevCards => {
-        const newCards = [...prevCards];
-        const draggedIndex = newCards.findIndex(card => card.id === draggedCard.id);
-        const targetIndex = newCards.findIndex(card => card.id === lastHoveredCardId);
-        
-        if (draggedIndex !== -1 && targetIndex !== -1) {
-          const draggedCardData = newCards[draggedIndex];
-          const targetCardData = newCards[targetIndex];
-          
-          // Сохраняем оригинальные columnId
-          const draggedColumnId = draggedCardData.columnId;
-          const targetColumnId = targetCardData.columnId;
-          
-          // Меняем карточки местами с обновлением columnId
-          newCards[draggedIndex] = { 
-            ...targetCardData, 
-            columnId: draggedColumnId,
-            updatedAt: new Date().toISOString()
-          };
-          newCards[targetIndex] = { 
-            ...draggedCardData, 
-            columnId: targetColumnId,
-            updatedAt: new Date().toISOString()
-          };
-          
-          console.log('Карточки успешно поменялись местами');
-        }
-        
-        return newCards;
-      });
-    }
-    
-    setDraggedCard(null);
-    setLastHoveredCardId(null);
-    setHoverHistory([]);
-  }, [draggedCard, lastHoveredCardId, hoverHistory]);
-
-  const handleDragOver = useCallback((targetCardId: string) => {
-    if (draggedCard && draggedCard.id !== targetCardId) {
-      setLastHoveredCardId(targetCardId);
-      setHoverHistory(prev => {
-        const newHistory = [...prev, targetCardId];
-        console.log(`Наведение на карточку: ${targetCardId}`);
-        console.log('Полная история наведения:', newHistory);
-        return newHistory;
-      });
-    }
-  }, [draggedCard]);
-
-  const handleDrop = useCallback((draggedCardId: string, targetCardId: string) => {
-    console.log(`DROP: Перетаскиваемая ${draggedCardId} → Целевая ${targetCardId}`);
-  }, []);
-
-  const handleDropToEmpty = useCallback((draggedCardId: string, targetColumnId: string) => {
-    console.log(`DROP TO EMPTY: Карточка ${draggedCardId} → Колонка ${targetColumnId}`);
-    
-    setCards(prevCards => 
-      prevCards.map(card => 
-        card.id === draggedCardId 
-          ? { 
-              ...card, 
-              columnId: targetColumnId,
-              updatedAt: new Date().toISOString()
-            }
-          : card
-      )
-    );
-  }, []);
-
-  const handleAddCard = useCallback((columnId: string) => {
-    const newCard: CardType = {
-      id: `card${Date.now()}`,
-      title: `Новая задача ${cards.filter(card => card.columnId === columnId).length + 1}`,
-      description: '',
-      columnId: columnId,
-      labels: [],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    setCards(prev => [...prev, newCard]);
-  }, [cards]);
-
-  const handleUpdateColumnTitle = useCallback((columnId: string, newTitle: string) => {
-    setColumns(prev => prev.map(col => 
-      col.id === columnId ? { ...col, title: newTitle } : col
-    ));
-  }, []);
-
-  const handleDeleteColumn = useCallback((columnId: string) => {
-    setColumns(prev => prev.filter(col => col.id !== columnId));
-    setCards(prev => prev.filter(card => card.columnId !== columnId));
-  }, []);
-
-  const handleCardClick = useCallback((card: CardType) => {
-    console.log('Карточка кликнута:', card.id);
-  }, []);
-
-  // Обновляем cardIds в колонках на основе текущих карточек
-  const columnsWithCardIds = columns.map(column => ({
-    ...column,
-    cardIds: cards.filter(card => card.columnId === column.id).map(card => card.id)
-  }));
-
-  return (
-    <div style={{ display: 'flex', gap: '16px', padding: '20px' }}>
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        background: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '10px',
-        borderRadius: '5px',
-        fontSize: '12px',
-        zIndex: 1000,
-        maxWidth: '300px'
-      }}>
-        <div><strong>Отладка перетаскивания:</strong></div>
-        <div>Перетаскиваемая: {draggedCard?.id || 'нет'}</div>
-        <div>Последняя наведенная: {lastHoveredCardId || 'нет'}</div>
-        <div>История наведения: {hoverHistory.join(' → ')}</div>
-      </div>
-
-      {columnsWithCardIds.map(column => (
-        <Column
-          key={column.id}
-          column={column}
-          cards={cards.filter(card => card.columnId === column.id)}
-          onAddCard={handleAddCard}
-          onUpdateColumnTitle={handleUpdateColumnTitle}
-          onDeleteColumn={handleDeleteColumn}
-          onCardClick={handleCardClick}
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onDropToEmpty={handleDropToEmpty}
-          draggedCard={draggedCard}
-          lastHoveredCardId={lastHoveredCardId}
-        />
-      ))}
-    </div>
-  );
-};
- */

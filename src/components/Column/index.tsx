@@ -26,11 +26,9 @@ interface ColumnProps {
   onToggleCardSelection?: (cardId: string) => void;
   onDragStart: (cardId: string, columnId: string) => void;
   onDragEnd: () => void;
-  onDragOver: (targetCardId: string) => void;
-  onDrop: (draggedCardId: string, lastHoveredCardId: string) => void;
-  onDropToEmpty: (draggedCardId: string, targetColumnId: string) => void;
+  onDrop: (targetCardId: string, targetColumnId: string) => void;
+  onDropToEmpty: (targetColumnId: string) => void;
   draggedCard: {id: string, columnId: string} | null;
-  lastHoveredCardId: string | null;
 }
 
 export const Column: React.FC<ColumnProps> = ({
@@ -46,14 +44,13 @@ export const Column: React.FC<ColumnProps> = ({
   onToggleCardSelection,
   onDragStart,
   onDragEnd,
-  onDragOver,
   onDrop,
   onDropToEmpty,
-  draggedCard,
-  lastHoveredCardId
+  draggedCard
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
+  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
   const [isColumnDragOver, setIsColumnDragOver] = useState(false);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,6 +73,7 @@ export const Column: React.FC<ColumnProps> = ({
     }
   };
 
+  // Обработчики перетаскивания для карточек
   const handleCardDragStart = (e: React.DragEvent, card: CardType) => {
     e.dataTransfer.setData('text/plain', card.id);
     e.dataTransfer.setData('application/json', JSON.stringify({
@@ -88,24 +86,24 @@ export const Column: React.FC<ColumnProps> = ({
   const handleCardDragOver = (e: React.DragEvent, card: CardType) => {
     e.preventDefault();
     if (draggedCard && draggedCard.id !== card.id) {
-      onDragOver(card.id);
+      setDragOverCardId(card.id);
     }
   };
 
   const handleCardDragLeave = (e: React.DragEvent) => {
-    if (e.currentTarget === e.target) {
-    }
+    setDragOverCardId(null);
   };
 
   const handleCardDrop = (e: React.DragEvent, card: CardType) => {
     e.preventDefault();
+    setDragOverCardId(null);
     
     const draggedCardData = e.dataTransfer.getData('application/json');
     if (draggedCardData) {
       try {
         const { cardId: draggedCardId } = JSON.parse(draggedCardData);
         if (draggedCardId && draggedCardId !== card.id) {
-          onDrop(draggedCardId, card.id);
+          onDrop(card.id, column.id);
         }
       } catch (error) {
         console.error('Error parsing drag data:', error);
@@ -113,15 +111,14 @@ export const Column: React.FC<ColumnProps> = ({
     }
   };
 
+  // Обработчики для пустой зоны колонки
   const handleEmptyZoneDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsColumnDragOver(true);
   };
 
   const handleEmptyZoneDragLeave = (e: React.DragEvent) => {
-    if (e.currentTarget === e.target) {
-      setIsColumnDragOver(false);
-    }
+    setIsColumnDragOver(false);
   };
 
   const handleEmptyZoneDrop = (e: React.DragEvent) => {
@@ -133,7 +130,7 @@ export const Column: React.FC<ColumnProps> = ({
       try {
         const { cardId: draggedCardId } = JSON.parse(draggedCardData);
         if (draggedCardId) {
-          onDropToEmpty(draggedCardId, column.id);
+          onDropToEmpty(column.id);
         }
       } catch (error) {
         console.error('Error parsing drag data:', error);
@@ -142,6 +139,7 @@ export const Column: React.FC<ColumnProps> = ({
   };
 
   const handleCardDragEnd = (e: React.DragEvent) => {
+    setDragOverCardId(null);
     setIsColumnDragOver(false);
     onDragEnd();
   };
@@ -193,29 +191,14 @@ export const Column: React.FC<ColumnProps> = ({
               onDrop={(e) => handleCardDrop(e, card)}
               style={{
                 opacity: draggedCard?.id === card.id ? 0.5 : 1,
-                transform: lastHoveredCardId === card.id ? 'scale(1.02)' : 'none',
-                border: lastHoveredCardId === card.id ? '2px dashed #007bff' : 'none',
+                transform: dragOverCardId === card.id ? 'translateY(2px)' : 'none',
+                border: dragOverCardId === card.id ? '2px dashed #007bff' : 'none',
                 borderRadius: '8px',
                 marginBottom: '8px',
                 transition: 'all 0.2s ease',
-                cursor: 'grab',
-                position: 'relative'
+                cursor: 'grab'
               }}
             >
-              {lastHoveredCardId === card.id && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: -4,
-                    left: 0,
-                    right: 0,
-                    height: '4px',
-                    backgroundColor: '#007bff',
-                    borderRadius: '2px',
-                    zIndex: 10
-                  }}
-                />
-              )}
               <Card 
                 card={card} 
                 onClick={() => onCardClick(card)}
@@ -223,17 +206,6 @@ export const Column: React.FC<ColumnProps> = ({
                 isSelected={selectedCards.has(card.id)}
                 onToggleSelection={onToggleCardSelection}
               />
-              <div style={{ 
-                fontSize: '10px', 
-                color: '#666', 
-                marginTop: '4px',
-                padding: '2px',
-                backgroundColor: '#f5f5f5',
-                borderRadius: '3px'
-              }}>
-                ID: {card.id}
-                {lastHoveredCardId === card.id && ' ← НАВЕДЕНА'}
-              </div>
             </div>
           ))
         )}
