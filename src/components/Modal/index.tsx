@@ -31,7 +31,20 @@ import {
   HistoryContainer,
   HistoryItem,
   HistoryTime,
-  HistoryAction
+  HistoryAction,
+  CardPreview,
+  PreviewSection,
+  PreviewTitle,
+  PreviewContent,
+  PreviewLabels,
+  PreviewLabel,
+  PreviewImages,
+  PreviewImage,
+  PreviewList,
+  PreviewListItem,
+  PreviewChecklist,
+  PreviewChecklistItem,
+  EmptyState
 } from './styled';
 import { Card, CardHistory, CardList, CardImage, CardLabel, CardChecklist, ChecklistItem as ChecklistItemType } from '../../types';
 
@@ -56,7 +69,7 @@ export const CardModal: React.FC<CardModalProps> = ({
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [activeTab, setActiveTab] = useState<'main' | 'lists' | 'images' | 'labels' | 'checklists' | 'history'>('main');
+  const [activeTab, setActiveTab] = useState<'main' | 'preview' | 'lists' | 'images' | 'labels' | 'checklists' | 'history'>('main');
   const [lists, setLists] = useState<CardList[]>([]);
   const [images, setImages] = useState<CardImage[]>([]);
   const [labels, setLabels] = useState<CardLabel[]>([]);
@@ -282,19 +295,38 @@ export const CardModal: React.FC<CardModalProps> = ({
       case 'TITLE_CHANGED':
         return `Название изменено с "${history.oldValue}" на "${history.newValue}"`;
       case 'DESCRIPTION_CHANGED':
-        return 'Описание изменено';
+        return `Описание изменено`;
       case 'CARD_MOVED':
         return `Перемещена из "${history.oldValue}" в "${history.newValue}"`;
+      case 'LISTS_CHANGED':
+        const listAction = history.details?.action === 'LIST_ADDED' ? 'добавлен' : 'удален';
+        return `Список ${listAction}. Элементов: ${history.oldValue} → ${history.newValue}`;
+      case 'IMAGES_CHANGED':
+        const imageAction = history.details?.action === 'IMAGE_ADDED' ? 'добавлено' : 'удалено';
+        return `Изображений ${imageAction}: ${history.oldValue} → ${history.newValue}`;
+      case 'LABELS_CHANGED':
+        const labelAction = history.details?.action === 'LABEL_ADDED' ? 'добавлена' : 'удалена';
+        return `Метка ${labelAction}. Всего: ${history.oldValue} → ${history.newValue}`;
+      case 'CHECKLISTS_CHANGED':
+        const checklistAction = history.details?.action === 'CHECKLIST_ADDED' ? 'добавлен' : 'удален';
+        return `Чеклист ${checklistAction}. Всего: ${history.oldValue} → ${history.newValue}`;
       default:
         return history.action;
     }
   };
 
+  const hasContent = 
+    description.trim() || 
+    (labels && labels.length > 0) || 
+    (images && images.length > 0) || 
+    (lists && lists.length > 0) || 
+    (checklists && checklists.length > 0);
+
   if (!isOpen) return null;
 
   return (
     <ModalOverlay onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
-      <ModalContent style={{ maxWidth: '600px', width: '90%' }}>
+      <ModalContent style={{ maxWidth: '800px', width: '90%' }}>
         <ModalHeader>
           <ModalTitle>
             {mode === 'create' ? 'Создать карточку' : 'Редактировать карточку'}
@@ -309,6 +341,12 @@ export const CardModal: React.FC<CardModalProps> = ({
             onClick={() => setActiveTab('main')}
           >
             Основное
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'preview'} 
+            onClick={() => setActiveTab('preview')}
+          >
+            Просмотр
           </TabButton>
           <TabButton 
             $active={activeTab === 'lists'} 
@@ -348,7 +386,7 @@ export const CardModal: React.FC<CardModalProps> = ({
           {activeTab === 'main' && (
             <>
               <FormGroup>
-                <Label htmlFor="card-title">Название *</Label>
+                <Label htmlFor="card-title">Название карточки *</Label>
                 <Input
                   id="card-title"
                   value={title}
@@ -359,16 +397,130 @@ export const CardModal: React.FC<CardModalProps> = ({
               </FormGroup>
 
               <FormGroup>
-                <Label htmlFor="card-description">Описание</Label>
+                <Label htmlFor="card-description">Описание задачи</Label>
                 <TextArea
                   id="card-description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Введите описание карточки"
-                  rows={4}
+                  placeholder="Опишите детали задачи..."
+                  rows={6}
                 />
               </FormGroup>
             </>
+          )}
+
+          {activeTab === 'preview' && (
+            <CardPreview>
+              <PreviewSection>
+                <PreviewTitle>Название задачи</PreviewTitle>
+                <PreviewContent>{title || 'Нет названия'}</PreviewContent>
+              </PreviewSection>
+
+              {description && (
+                <PreviewSection>
+                  <PreviewTitle>Описание</PreviewTitle>
+                  <PreviewContent>{description}</PreviewContent>
+                </PreviewSection>
+              )}
+
+              {labels && labels.length > 0 && (
+                <PreviewSection>
+                  <PreviewTitle>Метки</PreviewTitle>
+                  <PreviewLabels>
+                    {labels.map(label => (
+                      <PreviewLabel key={label.id} $color={label.color}>
+                        {label.text}
+                      </PreviewLabel>
+                    ))}
+                  </PreviewLabels>
+                </PreviewSection>
+              )}
+
+              {images && images.length > 0 && (
+                <PreviewSection>
+                  <PreviewTitle>Изображения ({images.length})</PreviewTitle>
+                  <PreviewImages>
+                    {images.map(image => (
+                      <PreviewImage key={image.id}>
+                        <img src={image.url} alt={image.name} />
+                        <div className="image-name">{image.name}</div>
+                      </PreviewImage>
+                    ))}
+                  </PreviewImages>
+                </PreviewSection>
+              )}
+
+              {lists && lists.length > 0 && (
+                <PreviewSection>
+                  <PreviewTitle>Списки</PreviewTitle>
+                  {lists.map(list => (
+                    <div key={list.id} style={{ marginBottom: '16px' }}>
+                      <PreviewContent style={{ fontWeight: '600', marginBottom: '8px' }}>
+                        {list.title}
+                      </PreviewContent>
+                      <PreviewList>
+                        {list.items.map(item => (
+                          <PreviewListItem key={item.id} $completed={item.completed}>
+                            {item.text}
+                          </PreviewListItem>
+                        ))}
+                      </PreviewList>
+                    </div>
+                  ))}
+                </PreviewSection>
+              )}
+
+              {checklists && checklists.length > 0 && (
+                <PreviewSection>
+                  <PreviewTitle>Чеклисты</PreviewTitle>
+                  {checklists.map(checklist => {
+                    const total = checklist.items.length;
+                    const completed = checklist.items.filter(item => item.completed).length;
+                    const progress = total > 0 ? (completed / total) * 100 : 0;
+                    
+                    return (
+                      <PreviewChecklist key={checklist.id}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                          <PreviewContent style={{ fontWeight: '600' }}>
+                            {checklist.title}
+                          </PreviewContent>
+                          <span style={{ fontSize: '12px', color: '#666' }}>
+                            {completed}/{total}
+                          </span>
+                        </div>
+                        <div style={{ 
+                          background: '#f0f0f0', 
+                          borderRadius: '4px', 
+                          height: '6px', 
+                          marginBottom: '8px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{ 
+                            background: '#1890ff', 
+                            height: '100%', 
+                            width: `${progress}%`,
+                            transition: 'width 0.3s ease'
+                          }} />
+                        </div>
+                        <div>
+                          {checklist.items.map(item => (
+                            <PreviewChecklistItem key={item.id} $completed={item.completed}>
+                              {item.text}
+                            </PreviewChecklistItem>
+                          ))}
+                        </div>
+                      </PreviewChecklist>
+                    );
+                  })}
+                </PreviewSection>
+              )}
+
+              {!hasContent && (
+                <EmptyState>
+                  Карточка пока пуста. Добавьте описание, метки, изображения или списки.
+                </EmptyState>
+              )}
+            </CardPreview>
           )}
 
           {activeTab === 'lists' && (
@@ -543,9 +695,9 @@ export const CardModal: React.FC<CardModalProps> = ({
           {activeTab === 'history' && (
             <HistoryContainer>
               {cardHistory.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                <EmptyState>
                   История изменений отсутствует
-                </div>
+                </EmptyState>
               ) : (
                 cardHistory.map(history => (
                   <HistoryItem key={history.id}>

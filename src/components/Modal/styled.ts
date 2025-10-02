@@ -137,6 +137,7 @@ export const TabButton = styled.button<{ $active: boolean }>`
   border-bottom: 2px solid ${props => props.$active ? '#1890ff' : 'transparent'};
   color: ${props => props.$active ? '#1890ff' : '#666'};
   font-weight: ${props => props.$active ? '500' : 'normal'};
+  white-space: nowrap;
 
   &:hover {
     color: #1890ff;
@@ -277,20 +278,136 @@ export const HistoryContainer = styled.div`
 `;
 
 export const HistoryItem = styled.div`
-  padding: 8px 12px;
+  padding: 12px;
   border-bottom: 1px solid #f0f0f0;
+  background: #f9f9f9;
+  border-radius: 4px;
+  margin-bottom: 8px;
+
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+`;
+
+export const HistoryAction = styled.div`
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #333;
+`;
+
+export const HistoryTime = styled.div`
+  font-size: 12px;
+  color: #666;
+`;
+
+// Новые стили для красивого отображения
+export const CardPreview = styled.div`
+  padding: 8px 0;
+`;
+
+export const PreviewSection = styled.div`
+  margin-bottom: 24px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border-left: 4px solid #1890ff;
+`;
+
+export const PreviewTitle = styled.h3`
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+`;
+
+export const PreviewContent = styled.div`
+  color: #555;
+  line-height: 1.5;
+  font-size: 14px;
+`;
+
+export const PreviewLabels = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+`;
+
+export const PreviewLabel = styled.span<{ $color: string }>`
+  background: ${props => props.$color};
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+`;
+
+export const PreviewImages = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+`;
+
+export const PreviewImage = styled.div`
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow: hidden;
+  text-align: center;
+
+  img {
+    width: 100%;
+    height: 80px;
+    object-fit: cover;
+  }
+
+  .image-name {
+    padding: 8px;
+    font-size: 11px;
+    color: #666;
+    background: #f5f5f5;
+  }
+`;
+
+export const PreviewList = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin: 0;
+`;
+
+export const PreviewListItem = styled.li<{ $completed: boolean }>`
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  background: white;
+  border-radius: 4px;
+  border-left: 3px solid ${props => props.$completed ? '#52c41a' : '#1890ff'};
+  text-decoration: ${props => props.$completed ? 'line-through' : 'none'};
+  color: ${props => props.$completed ? '#999' : '#333'};
+  font-size: 14px;
+`;
+
+export const PreviewChecklist = styled.div`
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid #e8e8e8;
+`;
+
+export const PreviewChecklistItem = styled.div<{ $completed: boolean }>`
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  text-decoration: ${props => props.$completed ? 'line-through' : 'none'};
+  color: ${props => props.$completed ? '#999' : '#333'};
+  font-size: 14px;
 
   &:last-child {
     border-bottom: none;
   }
 `;
 
-export const HistoryAction = styled.div`
-  font-weight: 500;
-  margin-bottom: 2px;
-`;
-
-export const HistoryTime = styled.div`
-  font-size: 12px;
-  color: #666;
+export const EmptyState = styled.div`
+  text-align: center;
+  color: #999;
+  padding: 40px 20px;
+  font-style: italic;
 `;

@@ -58,6 +58,7 @@ export interface CardHistory {
   timestamp: string;
   oldValue?: any;
   newValue?: any;
+  details?: any
 }
 
 export interface BoardData {

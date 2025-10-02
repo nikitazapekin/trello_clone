@@ -32,7 +32,7 @@ const initialData: BoardData = {
     { 
       id: 'card-1', 
       title: 'Первая задача', 
-      description: 'Описание 1', 
+      description: 'Описание первой задачи', 
       columnId: 'col-1',
       lists: [],
       images: [],
@@ -42,7 +42,7 @@ const initialData: BoardData = {
     { 
       id: 'card-2', 
       title: 'Вторая задача', 
-      description: 'Описание 2', 
+      description: 'Описание второй задачи', 
       columnId: 'col-1',
       lists: [],
       images: [],
@@ -52,7 +52,7 @@ const initialData: BoardData = {
     { 
       id: 'card-3', 
       title: 'Третья задача', 
-      description: 'Описание 3', 
+      description: 'Описание третьей задачи', 
       columnId: 'col-2',
       lists: [],
       images: [],
@@ -89,19 +89,20 @@ export const Board: React.FC = () => {
 
   const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const addHistoryRecord = (cardId: string, action: string, oldValue?: any, newValue?: any) => {
+  const addHistoryRecord = (cardId: string, action: string, oldValue?: any, newValue?: any, details?: any) => {
     const historyRecord: CardHistory = {
       id: generateId(),
       cardId,
       action,
       timestamp: new Date().toISOString(),
       oldValue,
-      newValue
+      newValue,
+      details
     };
 
     setBoardData(prev => ({
       ...prev,
-      history: [historyRecord, ...prev.history].slice(0, 100)
+      history: [historyRecord, ...(prev.history || [])].slice(0, 100)
     }));
   };
  
@@ -189,6 +190,50 @@ export const Board: React.FC = () => {
     } else if (modalState.mode === 'edit' && modalState.card) {
       const oldCard = modalState.card;
       
+      // Сравниваем изменения для истории
+      if (oldCard.title !== cardData.title) {
+        addHistoryRecord(oldCard.id, 'TITLE_CHANGED', oldCard.title, cardData.title);
+      }
+      if (oldCard.description !== cardData.description) {
+        addHistoryRecord(oldCard.id, 'DESCRIPTION_CHANGED', oldCard.description, cardData.description);
+      }
+      
+      // Сравниваем списки
+      const oldListsCount = oldCard.lists?.length || 0;
+      const newListsCount = cardData.lists?.length || 0;
+      if (oldListsCount !== newListsCount) {
+        addHistoryRecord(oldCard.id, 'LISTS_CHANGED', oldListsCount, newListsCount, {
+          action: oldListsCount < newListsCount ? 'LIST_ADDED' : 'LIST_REMOVED'
+        });
+      }
+
+      // Сравниваем изображения
+      const oldImagesCount = oldCard.images?.length || 0;
+      const newImagesCount = cardData.images?.length || 0;
+      if (oldImagesCount !== newImagesCount) {
+        addHistoryRecord(oldCard.id, 'IMAGES_CHANGED', oldImagesCount, newImagesCount, {
+          action: oldImagesCount < newImagesCount ? 'IMAGE_ADDED' : 'IMAGE_REMOVED'
+        });
+      }
+
+      // Сравниваем метки
+      const oldLabelsCount = oldCard.labels?.length || 0;
+      const newLabelsCount = cardData.labels?.length || 0;
+      if (oldLabelsCount !== newLabelsCount) {
+        addHistoryRecord(oldCard.id, 'LABELS_CHANGED', oldLabelsCount, newLabelsCount, {
+          action: oldLabelsCount < newLabelsCount ? 'LABEL_ADDED' : 'LABEL_REMOVED'
+        });
+      }
+
+      // Сравниваем чеклисты
+      const oldChecklistsCount = oldCard.checklists?.length || 0;
+      const newChecklistsCount = cardData.checklists?.length || 0;
+      if (oldChecklistsCount !== newChecklistsCount) {
+        addHistoryRecord(oldCard.id, 'CHECKLISTS_CHANGED', oldChecklistsCount, newChecklistsCount, {
+          action: oldChecklistsCount < newChecklistsCount ? 'CHECKLIST_ADDED' : 'CHECKLIST_REMOVED'
+        });
+      }
+
       setBoardData(prev => ({
         ...prev,
         cards: prev.cards.map(card => 
@@ -204,13 +249,6 @@ export const Board: React.FC = () => {
             : card
         )
       }));
-
-      if (oldCard.title !== cardData.title) {
-        addHistoryRecord(oldCard.id, 'TITLE_CHANGED', oldCard.title, cardData.title);
-      }
-      if (oldCard.description !== cardData.description) {
-        addHistoryRecord(oldCard.id, 'DESCRIPTION_CHANGED');
-      }
     }
   };
  
