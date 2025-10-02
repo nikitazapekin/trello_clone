@@ -198,16 +198,14 @@ const handleDragEnd = (event: DragEndEvent) => {
  
   const activeCard = boardData.cards.find(card => card.id === activeId);
   if (!activeCard) return;
-
-  // Определяем целевую колонку
+ 
   let targetColumnId: string | undefined;
-
-  // Если перетащили на колонку или на пустую область колонки
+ 
   const overColumn = boardData.columns.find(col => col.id === overId);
   if (overColumn || over.data?.current?.type === 'column') {
     targetColumnId = overColumn ? overColumn.id : overId;
   } else {
-    // Если перетащили на карточку, берем колонку этой карточки
+   
     const overCard = boardData.cards.find(card => card.id === overId);
     if (overCard) {
       targetColumnId = overCard.columnId;
@@ -229,13 +227,12 @@ const handleDragEnd = (event: DragEndEvent) => {
     const targetColumn = boardData.columns.find(col => col.id === targetColumnId);
     newIndex = targetColumn?.cardIds.length ?? 0;
   }
-
-  // Перемещаем карточку
+ 
   moveCard(activeId, activeCard.columnId, targetColumnId, newIndex);
 };
   const moveCard = (cardId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
     setBoardData(prev => {
-      // Если карточка перемещается в ту же колонку
+     
       if (fromColumnId === toColumnId) {
         const column = prev.columns.find(col => col.id === fromColumnId);
         if (!column) return prev;
@@ -252,21 +249,21 @@ const handleDragEnd = (event: DragEndEvent) => {
           )
         };
       } else {
-        // Если карточка перемещается в другую колонку
+       
         const updatedCards = prev.cards.map(card =>
           card.id === cardId ? { ...card, columnId: toColumnId } : card
         );
 
         const updatedColumns = prev.columns.map(column => {
           if (column.id === fromColumnId) {
-            // Удаляем из исходной колонки
+          
             return {
               ...column,
               cardIds: column.cardIds.filter(id => id !== cardId)
             };
           }
           if (column.id === toColumnId) {
-            // Добавляем в целевую колонку на нужную позицию
+      
             const newCardIds = [...column.cardIds];
             newCardIds.splice(newIndex, 0, cardId);
             return {
