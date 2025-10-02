@@ -26,7 +26,8 @@
       "@hooks/*": ["src/hooks/*"],
       "@errors/*": ["src/errors/*"],
       "@mocks/*": ["./src/mocks/*"],
-      "@mocks": ["./src/mocks"]
+      "@mocks": ["./src/mocks"],
+      "@components/*": ["./src/components/*"]
     }
   },
   "ts-node": {

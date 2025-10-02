@@ -19,6 +19,7 @@ export function buildResolvers() {
       "@types": path.resolve(__dirname, "src/types"),
       "@errors": path.resolve(__dirname, "src/errors"),
       "@mocks": path.resolve(__dirname, "src/mocks"),
+     
     },
   };
 }

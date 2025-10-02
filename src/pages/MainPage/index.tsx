@@ -1,4 +1,5 @@
  
+ 
 import { Board } from "@components/Board";
 import { GlobalStyle, PageWrapper, Reset, WrapperContainer } from "@styles";
  
