@@ -1,41 +1,23 @@
-import React, { useState } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverEvent,
-  DragStartEvent,
-  PointerSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  closestCorners,
-  DragOverlay,
-} from '@dnd-kit/core';
-import {
-  SortableContext,
-  horizontalListSortingStrategy,
-  arrayMove,
-} from '@dnd-kit/sortable';
+import React, { useState, useEffect } from 'react';
 import { BoardContainer, AddColumnButton, MultiSelectButton } from './styled';
 import { Column } from '@components/Column';
-import { Card } from '../Card';
 import { CardModal } from '@components/Modal';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { BoardData, Column as ColumnType, Card as CardType, HistoryAction,  HistoryChange } from '../../types';
+import { BoardData, Column as ColumnType, Card as CardType, HistoryAction, HistoryChange } from '../../types';
 
 const initialData: BoardData = {
   columns: [
-    { id: 'col-1', title: 'To Do', cardIds: ['card-1', 'card-2'] },
-    { id: 'col-2', title: 'In Progress', cardIds: ['card-3'] },
+    { id: 'col-1', title: 'To Do', cardIds: ['card-1', 'card-2', 'card-3'] },
+    { id: 'col-2', title: 'In Progress', cardIds: [] },
     { id: 'col-3', title: 'Done', cardIds: [] }
   ],
   cards: [
     { 
       id: 'card-1', 
-      title: 'Первая задача', 
+      title: 'Карточка 1', 
       description: 'Описание 1', 
       columnId: 'col-1',
-      labels: ['важно', 'срочно'],
+      labels: ['важно'],
       checklists: [],
       images: [],
       createdAt: new Date().toISOString(),
@@ -43,7 +25,7 @@ const initialData: BoardData = {
     },
     { 
       id: 'card-2', 
-      title: 'Вторая задача', 
+      title: 'Карточка 2', 
       description: 'Описание 2', 
       columnId: 'col-1',
       labels: [],
@@ -54,9 +36,9 @@ const initialData: BoardData = {
     },
     { 
       id: 'card-3', 
-      title: 'Третья задача', 
+      title: 'Карточка 3', 
       description: 'Описание 3', 
-      columnId: 'col-2',
+      columnId: 'col-1',
       labels: [],
       checklists: [],
       images: [],
@@ -81,28 +63,27 @@ export const Board: React.FC = () => {
     card: null
   });
   
-  const [activeCard, setActiveCard] = useState<CardType | null>(null);
-  const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 8, // Увеличил расстояние для лучшей работы
-      },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: {
-        delay: 200, // Уменьшил задержку для более быстрого отклика
-        tolerance: 10, // Увеличил допуск для лучшего определения жеста
-      },
-    })
-  );
-
   const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Функции для множественного выбора
+  // Обработчик перемещения карточек
+  useEffect(() => {
+    const handleCardMove = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { cardId, fromColumnId, toColumnId, targetIndex } = customEvent.detail;
+      moveCard(cardId, fromColumnId, toColumnId, targetIndex);
+    };
+
+    window.addEventListener('cardMove', handleCardMove);
+    
+    return () => {
+      window.removeEventListener('cardMove', handleCardMove);
+    };
+  }, []); // Убрал зависимость от boardData
+
+
   const toggleMultiSelectMode = () => {
     setIsMultiSelectMode(!isMultiSelectMode);
     if (isMultiSelectMode) {
@@ -353,114 +334,29 @@ export const Board: React.FC = () => {
       closeModal();
     }
   };
- 
-  const handleDragStart = (event: DragStartEvent) => {
-    const { active } = event;
-    const cardId = active.id as string;
-    const card = boardData.cards.find(c => c.id === cardId);
-    if (card) {
-      setActiveCard(card);
-      setActiveColumnId(card.columnId);
-    }
-  };
-
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event;
-    
-    if (!over) {
-      setActiveColumnId(null);
-      return;
-    }
-
-    const overId = over.id as string;
-    const activeId = active.id as string;
-
-    // Находим активную карточку
-    const activeCard = boardData.cards.find(card => card.id === activeId);
-    if (!activeCard) return;
-
-    let targetColumnId: string | undefined;
-
-    const overColumn = boardData.columns.find(col => col.id === overId);
-    if (overColumn) {
-      targetColumnId = overColumn.id;
-    } else {
-      const overCard = boardData.cards.find(card => card.id === overId);
-      if (overCard) {
-        targetColumnId = overCard.columnId;
-      } else if (over.data?.current?.type === 'column') {
-        targetColumnId = overId;
-      }
-    }
-
-    if (targetColumnId) {
-      setActiveColumnId(targetColumnId);
-    }
-  };  
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    setActiveCard(null);
-    setActiveColumnId(null);
-
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-   
-    const activeCard = boardData.cards.find(card => card.id === activeId);
-    if (!activeCard) return;
-
-    let targetColumnId: string | undefined;
-
-    const overColumn = boardData.columns.find(col => col.id === overId);
-    if (overColumn || over.data?.current?.type === 'column') {
-      targetColumnId = overColumn ? overColumn.id : overId;
-    } else {
-      const overCard = boardData.cards.find(card => card.id === overId);
-      if (overCard) {
-        targetColumnId = overCard.columnId;
-      }
-    }
-
-    if (!targetColumnId) return;
-   
-    let newIndex: number;
-
-    if (over.data?.current?.type === 'card') {
-      const targetColumn = boardData.columns.find(col => col.id === targetColumnId);
-      const overCardIndex = targetColumn?.cardIds.indexOf(overId) ?? -1;
-      
-      newIndex = overCardIndex !== -1 ? overCardIndex : 0;
-    } else {
-      const targetColumn = boardData.columns.find(col => col.id === targetColumnId);
-      newIndex = targetColumn?.cardIds.length ?? 0;
-    }
-
-    // Если есть выбранные карточки и активная карточка среди них, перемещаем все выбранные
-    if (selectedCards.size > 0 && selectedCards.has(activeId)) {
-      moveMultipleCards(Array.from(selectedCards), activeCard.columnId, targetColumnId, newIndex);
-      clearSelection();
-    } else {
-      moveCard(activeId, activeCard.columnId, targetColumnId, newIndex);
-    }
-  };
-
-  const moveCard = (cardId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
+const moveCard = (cardId: string, fromColumnId: string, toColumnId: string, targetIndex: number) => {
     setBoardData(prev => {
       const card = prev.cards.find(c => c.id === cardId);
       if (!card) return prev;
 
+      // Если перемещение внутри одной колонки
       if (fromColumnId === toColumnId) {
-        // Перемещение внутри одной колонки
         const column = prev.columns.find(col => col.id === fromColumnId);
         if (!column) return prev;
 
         const oldIndex = column.cardIds.indexOf(cardId);
         if (oldIndex === -1) return prev;
 
-        const newCardIds = arrayMove(column.cardIds, oldIndex, newIndex);
+        // Если новая позиция совпадает со старой, ничего не делаем
+        if (oldIndex === targetIndex) return prev;
+
+        // Создаем новый порядок карточек
+        const newCardIds = [...column.cardIds];
+        
+        // Удаляем карточку из старой позиции
+        newCardIds.splice(oldIndex, 1);
+        // Вставляем в новую позицию
+        newCardIds.splice(targetIndex, 0, cardId);
 
         return {
           ...prev,
@@ -470,20 +366,22 @@ export const Board: React.FC = () => {
         };
       } else {
         // Перемещение между колонками
-        const updatedCards = prev.cards.map(card =>
-          card.id === cardId ? { ...card, columnId: toColumnId } : card
+        const updatedCards = prev.cards.map(c =>
+          c.id === cardId ? { ...c, columnId: toColumnId } : c
         );
 
         const updatedColumns = prev.columns.map(column => {
           if (column.id === fromColumnId) {
+            // Удаляем из исходной колонки
             return {
               ...column,
               cardIds: column.cardIds.filter(id => id !== cardId)
             };
           }
           if (column.id === toColumnId) {
+            // Добавляем в целевую колонку
             const newCardIds = [...column.cardIds];
-            newCardIds.splice(newIndex, 0, cardId);
+            newCardIds.splice(targetIndex, 0, cardId);
             return {
               ...column,
               cardIds: newCardIds
@@ -521,64 +419,6 @@ export const Board: React.FC = () => {
     });
   };
 
-  const moveMultipleCards = (cardIds: string[], fromColumnId: string, toColumnId: string, startIndex: number) => {
-    setBoardData(prev => {
-      const cardsToMove = prev.cards.filter(card => cardIds.includes(card.id));
-      if (cardsToMove.length === 0) return prev;
-
-      const updatedCards = prev.cards.map(card =>
-        cardIds.includes(card.id) ? { ...card, columnId: toColumnId } : card
-      );
-
-      const updatedColumns = prev.columns.map(column => {
-        if (column.id === fromColumnId) {
-          // Удаляем все перемещаемые карточки из исходной колонки
-          return {
-            ...column,
-            cardIds: column.cardIds.filter(id => !cardIds.includes(id))
-          };
-        }
-        if (column.id === toColumnId) {
-          // Добавляем карточки в целевую колонку начиная с указанной позиции
-          const newCardIds = [...column.cardIds];
-          cardIds.forEach((cardId, index) => {
-            newCardIds.splice(startIndex + index, 0, cardId);
-          });
-          return {
-            ...column,
-            cardIds: newCardIds
-          };
-        }
-        return column;
-      });
-
-      const fromColumnTitle = prev.columns.find(col => col.id === fromColumnId)?.title || fromColumnId;
-      const toColumnTitle = prev.columns.find(col => col.id === toColumnId)?.title || toColumnId;
-
-      // Создаем записи истории для каждой перемещенной карточки
-      const historyRecords = cardIds.map(cardId => ({
-        id: generateId(),
-        cardId,
-        action: 'Перемещение карточки' as HistoryAction,
-        timestamp: new Date().toISOString(),
-        changes: [
-          { 
-            field: 'column', 
-            oldValue: fromColumnTitle, 
-            newValue: toColumnTitle 
-          }
-        ]
-      }));
-
-      return {
-        ...prev,
-        columns: updatedColumns,
-        cards: updatedCards,
-        history: [...historyRecords, ...prev.history.slice(0, 50 - historyRecords.length)]
-      };
-    });
-  };
-
   const getColumnTitle = (columnId?: string) => {
     if (!columnId) return '';
     const column = boardData.columns.find(col => col.id === columnId);
@@ -600,58 +440,32 @@ export const Board: React.FC = () => {
         {selectedCards.size > 0 && ` (${selectedCards.size})`}
       </MultiSelectButton>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <BoardContainer>
-          <SortableContext 
-            items={boardData.columns.map(col => col.id)} 
-            strategy={horizontalListSortingStrategy}
-          >
-            {boardData.columns.map(column => {
-              const columnCards = boardData.cards.filter(card => 
-                column.cardIds.includes(card.id)
-              );
-              
-              return (
-                <Column
-                  key={column.id}
-                  column={column}
-                  cards={columnCards}
-                  onAddCard={openCreateModal}
-                  onUpdateColumnTitle={updateColumnTitle}
-                  onDeleteColumn={deleteColumn}
-                  onCardClick={openViewModal}
-                  isActive={activeColumnId === column.id}
-                  isMultiSelectMode={isMultiSelectMode}
-                  selectedCards={selectedCards}
-                  onToggleCardSelection={toggleCardSelection}
-                />
-              );
-            })}
-          </SortableContext>
+      <BoardContainer>
+        {boardData.columns.map(column => {
+          const columnCards = boardData.cards.filter(card => 
+            column.cardIds.includes(card.id)
+          );
           
-          <AddColumnButton onClick={addColumn}>
-            + Добавить колонку
-          </AddColumnButton>
-        </BoardContainer>
-
-        <DragOverlay>
-          {activeCard ? (
-            <Card 
-              card={activeCard} 
-              onClick={() => {}} 
-              isDragging 
+          return (
+            <Column
+              key={column.id}
+              column={column}
+              cards={columnCards}
+              onAddCard={openCreateModal}
+              onUpdateColumnTitle={updateColumnTitle}
+              onDeleteColumn={deleteColumn}
+              onCardClick={openViewModal}
               isMultiSelectMode={isMultiSelectMode}
-              isSelected={isCardSelected(activeCard.id)}
+              selectedCards={selectedCards}
+              onToggleCardSelection={toggleCardSelection}
             />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          );
+        })}
+        
+        <AddColumnButton onClick={addColumn}>
+          + Добавить колонку
+        </AddColumnButton>
+      </BoardContainer>
 
       <CardModal
         isOpen={modalState.isOpen}

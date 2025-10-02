@@ -7,6 +7,7 @@ import type { Card as CardType } from '../../types';
 
 interface SortableCardProps {
   card: CardType;
+  index: number;
   onClick: () => void;
   isMultiSelectMode?: boolean;
   isSelected?: boolean;
@@ -15,6 +16,7 @@ interface SortableCardProps {
 
 export const SortableCard: React.FC<SortableCardProps> = ({ 
   card, 
+  index,
   onClick, 
   isMultiSelectMode = false,
   isSelected = false,
@@ -32,6 +34,9 @@ export const SortableCard: React.FC<SortableCardProps> = ({
     data: {
       type: 'card',
       card,
+      sortable: {
+        index,
+      },
     }
   });
 
