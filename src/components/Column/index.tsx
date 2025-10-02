@@ -22,6 +22,9 @@ interface ColumnProps {
   onDeleteColumn: (columnId: string) => void;
   onCardClick: (card: CardType) => void;
   isActive?: boolean;
+  isMultiSelectMode?: boolean;
+  selectedCards?: Set<string>;
+  onToggleCardSelection?: (cardId: string) => void;
 }
 
 export const Column: React.FC<ColumnProps> = ({
@@ -31,7 +34,10 @@ export const Column: React.FC<ColumnProps> = ({
   onUpdateColumnTitle,
   onDeleteColumn,
   onCardClick,
-  isActive = false
+  isActive = false,
+  isMultiSelectMode = false,
+  selectedCards = new Set(),
+  onToggleCardSelection
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
@@ -104,6 +110,9 @@ export const Column: React.FC<ColumnProps> = ({
                 key={card.id}
                 card={card}
                 onClick={() => onCardClick(card)}
+                isMultiSelectMode={isMultiSelectMode}
+                isSelected={selectedCards.has(card.id)}
+                onToggleSelection={onToggleCardSelection}
               />
             ))}
           </SortableContext>
