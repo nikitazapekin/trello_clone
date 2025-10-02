@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { 
   CardContainer, 
   CardTitle, 
@@ -38,14 +38,12 @@ export const Card: React.FC<CardProps> = ({
   ).length;
 
   const longPressTimer = useRef<number | null>(null);
-  const [isLongPressing, setIsLongPressing] = useState(false);
 
   // Обработчик long press для активации множественного выбора на мобильных
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (isMultiSelectMode) return;
     
     longPressTimer.current = window.setTimeout(() => {
-      setIsLongPressing(true);
       onToggleSelection?.(card.id);
     }, 500); // 500ms для long press
   }, [card.id, isMultiSelectMode, onToggleSelection]);
@@ -55,12 +53,7 @@ export const Card: React.FC<CardProps> = ({
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
     }
-    
-    if (isLongPressing) {
-      setIsLongPressing(false);
-      e.preventDefault(); // Предотвращаем клик после long press
-    }
-  }, [isLongPressing]);
+  }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     // Отменяем long press если пользователь начал двигать пальцем
