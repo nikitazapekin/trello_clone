@@ -37,14 +37,14 @@ export const Card: React.FC<CardProps> = ({
     checklist.items
   ).length;
 
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const longPressTimer = useRef<number | null>(null);
   const [isLongPressing, setIsLongPressing] = useState(false);
 
   // Обработчик long press для активации множественного выбора на мобильных
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (isMultiSelectMode) return;
     
-    longPressTimer.current = setTimeout(() => {
+    longPressTimer.current = window.setTimeout(() => {
       setIsLongPressing(true);
       onToggleSelection?.(card.id);
     }, 500); // 500ms для long press

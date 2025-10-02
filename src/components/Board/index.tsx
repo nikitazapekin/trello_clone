@@ -21,7 +21,7 @@ import { Column } from '@components/Column';
 import { Card } from '../Card';
 import { CardModal } from '@components/Modal';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { BoardData, Column as ColumnType, Card as CardType, HistoryAction, HistoryField, HistoryChange } from '../../types';
+import { BoardData, Column as ColumnType, Card as CardType, HistoryAction,  HistoryChange } from '../../types';
 
 const initialData: BoardData = {
   columns: [
