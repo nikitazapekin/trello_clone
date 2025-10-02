@@ -70,3 +70,40 @@ export type HistoryField =
   | 'checklists'
   | 'images'
   | 'column';
+
+
+
+  // types.ts
+export interface Card {
+  id: string;
+  title: string;
+  description: string;
+  columnId: string;
+  labels: string[];
+  //images: CardImage[];
+  checklists: Checklist[];
+}
+
+export interface CardImage {
+  id: string;
+  url: string;
+  name: string;
+}
+
+export interface Checklist {
+  id: string;
+  title: string;
+  items: ChecklistItem[];
+}
+
+export interface ChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export interface Column {
+  id: string;
+  title: string;
+  order: number;
+}
