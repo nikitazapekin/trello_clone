@@ -1,9 +1,6 @@
 import styled from 'styled-components';
 
-interface CardContainerProps {
-  $isDragging?: boolean;
-}
-
+ 
 
 interface CardContainerProps {
   $isDragging?: boolean;

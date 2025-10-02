@@ -1,16 +1,17 @@
 import React from 'react';
+
+import type { Card as CardType } from '../../types';
+
 import { 
-  CardContainer, 
-  CardTitle, 
-  CardDescription, 
-  CardLabels,
-  CardLabel,
-  CardBadges,
   CardBadge,
+  CardBadges,
+  CardCheckbox,
+  CardContainer, 
+  CardDescription, 
   CardImagePreview,
-  CardCheckbox
-} from './styled';
-import { Card as CardType } from '../../types';
+  CardLabel,
+  CardLabels,
+  CardTitle} from './styled';
 
 interface CardProps {
   card: CardType;
@@ -109,5 +110,6 @@ const getLabelColor = (label: string): string => {
     'исправлено': '#1890ff',
     'тест': '#722ed1'
   };
+
   return colors[label] || '#d9d9d9';
 };

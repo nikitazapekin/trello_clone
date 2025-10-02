@@ -1,8 +1,6 @@
 import { createRoot } from "react-dom/client";
- 
 import { BrowserRouter } from "react-router-dom";
 import AppRoutes from "@components/AppRouter";
- 
 import { GlobalStyle } from "@styles/globals";
 import { ThemeProvider } from "styled-components";
 

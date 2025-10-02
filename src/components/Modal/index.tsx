@@ -1,36 +1,37 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useRef,useState } from 'react';
+
+import type { Card, CardHistory, Checklist, ChecklistItem, Image } from '../../types';
+
 import {
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalTitle,
-  CloseButton,
-  FormGroup,
-  Label,
-  Input,
-  TextArea,
-  ButtonGroup,
   Button,
-  Tabs,
-  TabList,
-  Tab,
-  TabPanel,
-  ImageGallery,
-  ImageItem,
-  ImageThumbnail,
-  ImageFull,
+  ButtonGroup,
   ChecklistContainer,
   ChecklistItem as ChecklistItemStyled,
   ChecklistItemText,
-  HistoryList,
-  HistoryItem,
-  HistoryTime,
-  LabelList,
-  LabelItem,
+  CloseButton,
+  DeleteButton,
   FileInput,
-  DeleteButton
-} from './styled';
-import { Card, CardHistory, Checklist, ChecklistItem, Image } from '../../types';
+  FormGroup,
+  HistoryItem,
+  HistoryList,
+  HistoryTime,
+  ImageFull,
+  ImageGallery,
+  ImageItem,
+  ImageThumbnail,
+  Input,
+  Label,
+  LabelItem,
+  LabelList,
+  ModalContent,
+  ModalHeader,
+  ModalOverlay,
+  ModalTitle,
+  Tab,
+  TabList,
+  TabPanel,
+  Tabs,
+  TextArea} from './styled';
 
 interface CardModalProps {
   card: Card | null;
@@ -80,6 +81,7 @@ export const CardModal: React.FC<CardModalProps> = ({
       setChecklists([]);
       setImages([]);
     }
+
     setActiveTab('main');
     setSelectedImage(null);
   }, [card, isOpen]);
@@ -116,6 +118,7 @@ export const CardModal: React.FC<CardModalProps> = ({
         title: newChecklistTitle.trim(),
         items: []
       };
+
       setChecklists(prev => [...prev, newChecklist]);
       setNewChecklistTitle('');
     }
@@ -172,10 +175,12 @@ export const CardModal: React.FC<CardModalProps> = ({
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
+
     if (!files) return;
 
     Array.from(files).forEach(file => {
       const reader = new FileReader();
+
       reader.onload = (e) => {
         const newImage: Image = {
           id: generateId(),
@@ -183,6 +188,7 @@ export const CardModal: React.FC<CardModalProps> = ({
           name: file.name,
           uploadedAt: new Date().toISOString()
         };
+
         setImages(prev => [...prev, newImage]);
       };
       reader.readAsDataURL(file);
@@ -195,6 +201,7 @@ export const CardModal: React.FC<CardModalProps> = ({
 
   const handleDeleteImage = (imageId: string) => {
     setImages(prev => prev.filter(image => image.id !== imageId));
+
     if (selectedImage?.id === imageId) {
       setSelectedImage(null);
     }
@@ -217,6 +224,7 @@ export const CardModal: React.FC<CardModalProps> = ({
   const handleChecklistItemKeyPress = (e: React.KeyboardEvent<HTMLInputElement>, checklistId: string) => {
     if (e.key === 'Enter') {
       const target = e.target as HTMLInputElement;
+
       handleAddChecklistItem(checklistId, target.value);
       target.value = '';
     }

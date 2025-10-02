@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+
+import type { Card as CardType,Column as ColumnType } from '../../types';
+import { SortableCard } from '../SortableCard';
+
 import {
+  AddCardButton,
+  CardsContainer,
   ColumnContainer,
   ColumnHeader,
   ColumnTitle,
   ColumnTitleInput,
-  AddCardButton,
   DeleteColumnButton,
-  CardsContainer,
   EmptyColumnDropZone
 } from './styled';
-import { SortableCard } from '../SortableCard';
-import { Column as ColumnType, Card as CardType } from '../../types';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 
 interface ColumnProps {
   column: ColumnType;
@@ -57,6 +59,7 @@ export const Column: React.FC<ColumnProps> = ({
     if (title.trim()) {
       onUpdateColumnTitle(column.id, title.trim());
     }
+
     setIsEditing(false);
   };
 
