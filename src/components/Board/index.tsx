@@ -1,13 +1,14 @@
 // Board.tsx
 import React, { useState, useCallback } from 'react';
 import { Column } from '../Column';
+import { CardModal } from '@components/Modal';
 import type { Card as CardType, Column as ColumnType } from '../../types';
 
 export const Board: React.FC = () => {
   const [columns, setColumns] = useState<ColumnType[]>([
-    { id: 'col1', title: 'To Do', cardIds: [], order: 1 },
+    { id: 'col1', title: 'To Do', cardIds: [] , order: 1},
     { id: 'col2', title: 'In Progress', cardIds: [] , order: 2},
-    { id: 'col3', title: 'Done', cardIds: [], order: 3 }
+    { id: 'col3', title: 'Done', cardIds: [] , order: 3 }
   ]);
 
   const [cards, setCards] = useState<CardType[]>([
@@ -60,7 +61,92 @@ export const Board: React.FC = () => {
   const [draggedCard, setDraggedCard] = useState<{id: string, columnId: string} | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    card: CardType | null;
+    mode: 'create' | 'edit' | 'view';
+    columnId?: string;
+  }>({
+    isOpen: false,
+    card: null,
+    mode: 'view'
+  });
 
+  // Обработчики модального окна
+  const handleCardClick = useCallback((card: CardType) => {
+    if (isMultiSelectMode) {
+      setSelectedCards(prev => {
+        const newSelected = new Set(prev);
+        if (newSelected.has(card.id)) {
+          newSelected.delete(card.id);
+        } else {
+          newSelected.add(card.id);
+        }
+        return newSelected;
+      });
+    } else {
+      setModalState({
+        isOpen: true,
+        card: card,
+        mode: 'view'
+      });
+    }
+  }, [isMultiSelectMode]);
+
+  const handleEditCard = useCallback(() => {
+    if (modalState.card) {
+      setModalState(prev => ({
+        ...prev,
+        mode: 'edit'
+      }));
+    }
+  }, [modalState.card]);
+
+  const handleSaveCard = useCallback((cardData: Omit<CardType, 'id' | 'columnId' | 'createdAt' | 'updatedAt'>) => {
+    if (modalState.mode === 'create' && modalState.columnId) {
+      // Создание новой карточки
+      const newCard: CardType = {
+        ...cardData,
+        id: `card${Date.now()}`,
+        columnId: modalState.columnId,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      setCards(prev => [...prev, newCard]);
+    } else if (modalState.card) {
+      // Редактирование существующей карточки
+      setCards(prev => prev.map(card => 
+        card.id === modalState.card!.id 
+          ? {
+              ...card,
+              ...cardData,
+              updatedAt: new Date().toISOString()
+            }
+          : card
+      ));
+    }
+    setModalState({ isOpen: false, card: null, mode: 'view' });
+  }, [modalState]);
+
+  const handleDeleteCard = useCallback((cardId: string) => {
+    setCards(prev => prev.filter(card => card.id !== cardId));
+    setModalState({ isOpen: false, card: null, mode: 'view' });
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setModalState({ isOpen: false, card: null, mode: 'view' });
+  }, []);
+
+  const handleAddCard = useCallback((columnId: string) => {
+    setModalState({
+      isOpen: true,
+      card: null,
+      mode: 'create',
+      columnId: columnId
+    });
+  }, []);
+
+  // Обработчики перетаскивания
   const handleDragStart = useCallback((cardId: string, columnId: string) => {
     setDraggedCard({ id: cardId, columnId });
     console.log(`Начало перетаскивания карточки: ${cardId} из колонки: ${columnId}`);
@@ -122,21 +208,7 @@ export const Board: React.FC = () => {
     );
   }, [draggedCard]);
 
-  const handleAddCard = useCallback((columnId: string) => {
-    const newCard: CardType = {
-      id: `card${Date.now()}`,
-      title: `Новая задача ${cards.filter(card => card.columnId === columnId).length + 1}`,
-      description: '',
-      columnId: columnId,
-      labels: [],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    setCards(prev => [...prev, newCard]);
-  }, [cards]);
-
+  // Остальные обработчики
   const handleUpdateColumnTitle = useCallback((columnId: string, newTitle: string) => {
     setColumns(prev => prev.map(col => 
       col.id === columnId ? { ...col, title: newTitle } : col
@@ -147,22 +219,6 @@ export const Board: React.FC = () => {
     setColumns(prev => prev.filter(col => col.id !== columnId));
     setCards(prev => prev.filter(card => card.columnId !== columnId));
   }, []);
-
-  const handleCardClick = useCallback((card: CardType) => {
-    console.log('Карточка кликнута:', card.id);
-    
-    if (isMultiSelectMode) {
-      setSelectedCards(prev => {
-        const newSelected = new Set(prev);
-        if (newSelected.has(card.id)) {
-          newSelected.delete(card.id);
-        } else {
-          newSelected.add(card.id);
-        }
-        return newSelected;
-      });
-    }
-  }, [isMultiSelectMode]);
 
   const handleToggleCardSelection = useCallback((cardId: string) => {
     setSelectedCards(prev => {
@@ -210,6 +266,11 @@ export const Board: React.FC = () => {
     ...column,
     cardIds: cards.filter(card => card.columnId === column.id).map(card => card.id)
   }));
+
+  // Получаем название колонки для модального окна
+  const getColumnTitle = (columnId: string) => {
+    return columns.find(col => col.id === columnId)?.title || '';
+  };
 
   return (
     <div style={{ padding: '20px' }}>
@@ -333,8 +394,8 @@ export const Board: React.FC = () => {
               const newColumn: ColumnType = {
                 id: `col${Date.now()}`,
                 title: 'Новая колонка',
-                cardIds: []
-                , order: columns.length+1
+                cardIds: [],
+                order: columns.length+1
               };
               setColumns(prev => [...prev, newColumn]);
             }}
@@ -354,6 +415,19 @@ export const Board: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Модальное окно карточки */}
+      <CardModal
+        card={modalState.card}
+        isOpen={modalState.isOpen}
+        onSave={handleSaveCard}
+        onClose={handleCloseModal}
+        onDelete={handleDeleteCard}
+        mode={modalState.mode}
+        columnTitle={modalState.card ? getColumnTitle(modalState.card.columnId) : 
+                    modalState.columnId ? getColumnTitle(modalState.columnId) : undefined}
+        onEdit={handleEditCard}
+      />
 
       {/* Статистика */}
       <div style={{

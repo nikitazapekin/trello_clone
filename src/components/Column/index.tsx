@@ -190,7 +190,7 @@ export const Column: React.FC<ColumnProps> = ({
               onDragLeave={handleCardDragLeave}
               onDrop={(e) => handleCardDrop(e, card)}
               style={{
-                opacity: draggedCard?.id === card.id ? 0.5 : 1,
+                // Убрана прозрачность для перетаскиваемой карточки
                 transform: dragOverCardId === card.id ? 'translateY(2px)' : 'none',
                 border: dragOverCardId === card.id ? '2px dashed #007bff' : 'none',
                 borderRadius: '8px',
