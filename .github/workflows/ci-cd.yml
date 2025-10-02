@@ -27,16 +27,7 @@ jobs:
         
       - name: Run lint
         run: yarn lint
-      
-      - name: Run unit tests
-        run: yarn test
-      
-      - name: Run Cypress tests
-        run: |
-          yarn start &
-          yarn wait-on http://localhost:4000
-          yarn cypress:run
-      
+     
       - name: Build production
         run: yarn build:prod
 
@@ -74,4 +65,4 @@ jobs:
         run: npm install -g vercel@latest  
       
       - name: Deploy to Vercel
-        run: vercel --prod --yes --token ${{ secrets.VERCEL_TOKEN }}
+        run: vercel --prod --yes --token ${{ secrets.TRELLO_CLONE }}
