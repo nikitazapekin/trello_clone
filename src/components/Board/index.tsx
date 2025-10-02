@@ -141,8 +141,27 @@ export const Board: React.FC = () => {
       };
     });
   };
+
+  const deleteCard = (cardId: string) => {
+    setBoardData(prev => {
+      const card = prev.cards.find(c => c.id === cardId);
+      if (!card) return prev;
+
+      addHistoryRecord(cardId, 'CARD_DELETED', card.title);
+
+      return {
+        ...prev,
+        cards: prev.cards.filter(c => c.id !== cardId),
+        columns: prev.columns.map(col => ({
+          ...col,
+          cardIds: col.cardIds.filter(id => id !== cardId)
+        }))
+      };
+    });
+  };
  
   const openCreateModal = (columnId: string) => {
+    console.log('Opening create modal for column:', columnId);
     setModalState({
       isOpen: true,
       mode: 'create',
@@ -165,6 +184,9 @@ export const Board: React.FC = () => {
   };
 
   const handleSaveCard = (cardData: Omit<CardType, 'id' | 'columnId'>) => {
+    console.log('handleSaveCard called with:', cardData);
+    console.log('Modal state:', modalState);
+
     if (modalState.mode === 'create' && modalState.columnId) {
       const newCard: CardType = {
         ...cardData,
@@ -176,17 +198,29 @@ export const Board: React.FC = () => {
         checklists: cardData.checklists || []
       };
 
-      setBoardData(prev => ({
-        ...prev,
-        cards: [...prev.cards, newCard],
-        columns: prev.columns.map(col => 
+      console.log('Creating new card:', newCard);
+
+      setBoardData(prev => {
+        console.log('Previous board data:', prev);
+        
+        const updatedColumns = prev.columns.map(col => 
           col.id === modalState.columnId 
             ? { ...col, cardIds: [...col.cardIds, newCard.id] }
             : col
-        )
-      }));
+        );
+
+        const updatedData = {
+          ...prev,
+          cards: [...prev.cards, newCard],
+          columns: updatedColumns
+        };
+
+        console.log('Updated board data:', updatedData);
+        return updatedData;
+      });
 
       addHistoryRecord(newCard.id, 'CARD_CREATED', null, newCard.title);
+      closeModal();
     } else if (modalState.mode === 'edit' && modalState.card) {
       const oldCard = modalState.card;
       
@@ -249,6 +283,7 @@ export const Board: React.FC = () => {
             : card
         )
       }));
+      closeModal();
     }
   };
  
@@ -403,6 +438,8 @@ export const Board: React.FC = () => {
     return (boardData.history || []).filter(record => record.cardId === cardId);
   };
 
+  console.log('Current board data:', boardData);
+
   return (
     <>
       <DndContext
@@ -421,6 +458,8 @@ export const Board: React.FC = () => {
               const columnCards = boardData.cards.filter(card => 
                 column.cardIds.includes(card.id)
               );
+              
+              console.log(`Column ${column.id} cards:`, columnCards);
               
               return (
                 <Column
@@ -454,6 +493,7 @@ export const Board: React.FC = () => {
         card={modalState.card}
         onSave={handleSaveCard}
         onClose={closeModal}
+        onDelete={modalState.card ? () => deleteCard(modalState.card!.id) : undefined}
         mode={modalState.mode}
         columnTitle={getColumnTitle(modalState.columnId)}
         cardHistory={modalState.card ? getCardHistory(modalState.card.id) : []}

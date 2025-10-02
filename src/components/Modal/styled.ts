@@ -218,16 +218,17 @@ export const ImageUploadArea = styled.div`
 
 export const ImageContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
 `;
 
 export const ImagePreview = styled.div`
   position: relative;
   border: 1px solid #ddd;
-  border-radius: 4px;
-  padding: 8px;
+  border-radius: 8px;
+  padding: 12px;
   text-align: center;
+  background: #f9f9f9;
 `;
 
 export const LabelContainer = styled.div`
@@ -344,7 +345,7 @@ export const PreviewLabel = styled.span<{ $color: string }>`
 
 export const PreviewImages = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 12px;
 `;
 
@@ -353,10 +354,16 @@ export const PreviewImage = styled.div`
   border-radius: 8px;
   overflow: hidden;
   text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.05);
+  }
 
   img {
     width: 100%;
-    height: 80px;
+    height: 120px;
     object-fit: cover;
   }
 
@@ -410,4 +417,54 @@ export const EmptyState = styled.div`
   color: #999;
   padding: 40px 20px;
   font-style: italic;
+`;
+
+// Стили для модального окна изображений
+export const ImageModal = styled.div`
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+`;
+
+export const ImageModalContent = styled.div`
+  position: relative;
+  max-width: 90%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+export const ImageModalImg = styled.img`
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+`;
+
+export const ImageModalClose = styled.button`
+  position: absolute;
+  top: -40px;
+  right: 0;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 30px;
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    color: #ccc;
+  }
 `;
