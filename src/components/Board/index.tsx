@@ -1,29 +1,27 @@
 import React, { useState } from 'react';
-import { Column } from '@components/Column';
-import { CardModal } from '@components/Modal';
-import type {
+import {
+  DndContext,
   DragEndEvent,
   DragOverEvent,
-  DragStartEvent} from '@dnd-kit/core';
-import {
-  closestCorners,
-  DndContext,
-  DragOverlay,
+  DragStartEvent,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
+  closestCorners,
+  DragOverlay,
 } from '@dnd-kit/core';
 import {
-  arrayMove,
-  horizontalListSortingStrategy,
   SortableContext,
+  horizontalListSortingStrategy,
+  arrayMove,
 } from '@dnd-kit/sortable';
-
-import { useLocalStorage } from '../../hooks/useLocalStorage';
-import type { BoardData, Card as CardType, Column as ColumnType, HistoryAction,   HistoryChange } from '../../types';
+import { BoardContainer, AddColumnButton, MultiSelectButton } from './styled';
+import { Column } from '@components/Column';
 import { Card } from '../Card';
-
-import { AddColumnButton, BoardContainer, MultiSelectButton } from './styled';
+import { CardModal } from '@components/Modal';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { BoardData, Column as ColumnType, Card as CardType, HistoryAction, HistoryField, HistoryChange } from '../../types';
 
 const initialData: BoardData = {
   columns: [
@@ -93,6 +91,12 @@ export const Board: React.FC = () => {
       activationConstraint: {
         distance: 5,
       },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
+      },
     })
   );
 
@@ -101,7 +105,6 @@ export const Board: React.FC = () => {
   // Функции для множественного выбора
   const toggleMultiSelectMode = () => {
     setIsMultiSelectMode(!isMultiSelectMode);
-
     if (isMultiSelectMode) {
       setSelectedCards(new Set());
     }
@@ -112,13 +115,11 @@ export const Board: React.FC = () => {
     
     setSelectedCards(prev => {
       const newSelection = new Set(prev);
-
       if (newSelection.has(cardId)) {
         newSelection.delete(cardId);
       } else {
         newSelection.add(cardId);
       }
-
       return newSelection;
     });
   };
@@ -135,7 +136,6 @@ export const Board: React.FC = () => {
       title: 'Новая колонка',
       cardIds: []
     };
-
     setBoardData(prev => ({
       ...prev,
       columns: [...prev.columns, newColumn]
@@ -154,7 +154,6 @@ export const Board: React.FC = () => {
   const deleteColumn = (columnId: string) => {
     setBoardData(prev => {
       const column = prev.columns.find(col => col.id === columnId);
-
       if (!column) return prev;
  
       const remainingCards = prev.cards.filter(card => card.columnId !== columnId);
@@ -170,7 +169,6 @@ export const Board: React.FC = () => {
   const deleteCard = (cardId: string) => {
     setBoardData(prev => {
       const card = prev.cards.find(c => c.id === cardId);
-
       if (!card) return prev;
 
       const changes: HistoryChange[] = [
@@ -297,7 +295,6 @@ export const Board: React.FC = () => {
       
       const oldLabels = modalState.card.labels || [];
       const newLabels = cardData.labels || [];
-
       if (JSON.stringify(oldLabels) !== JSON.stringify(newLabels)) {
         changes.push({ 
           field: 'labels', 
@@ -308,7 +305,6 @@ export const Board: React.FC = () => {
       
       const oldChecklists = modalState.card.checklists || [];
       const newChecklists = cardData.checklists || [];
-
       if (JSON.stringify(oldChecklists) !== JSON.stringify(newChecklists)) {
         changes.push({ 
           field: 'checklists', 
@@ -319,7 +315,6 @@ export const Board: React.FC = () => {
       
       const oldImages = modalState.card.images || [];
       const newImages = cardData.images || [];
-
       if (JSON.stringify(oldImages) !== JSON.stringify(newImages)) {
         changes.push({ 
           field: 'images', 
@@ -329,7 +324,6 @@ export const Board: React.FC = () => {
       }
 
       let historyRecord = null;
-
       if (changes.length > 0) {
         historyRecord = {
           id: generateId(),
@@ -364,7 +358,6 @@ export const Board: React.FC = () => {
     const { active } = event;
     const cardId = active.id as string;
     const card = boardData.cards.find(c => c.id === cardId);
-
     if (card) {
       setActiveCard(card);
       setActiveColumnId(card.columnId);
@@ -376,25 +369,20 @@ export const Board: React.FC = () => {
     
     if (!over) {
       setActiveColumnId(null);
-
       return;
     }
 
     const overId = over.id as string;
      
     const overColumn = boardData.columns.find(col => col.id === overId);
-
     if (overColumn) {
       setActiveColumnId(overColumn.id);
-
       return;
     }
    
     const overCard = boardData.cards.find(card => card.id === overId);
-
     if (overCard) {
       setActiveColumnId(overCard.columnId);
-
       return;
     }
    
@@ -415,18 +403,15 @@ export const Board: React.FC = () => {
     const overId = over.id as string;
    
     const activeCard = boardData.cards.find(card => card.id === activeId);
-
     if (!activeCard) return;
 
     let targetColumnId: string | undefined;
 
     const overColumn = boardData.columns.find(col => col.id === overId);
-
     if (overColumn || over.data?.current?.type === 'column') {
       targetColumnId = overColumn ? overColumn.id : overId;
     } else {
       const overCard = boardData.cards.find(card => card.id === overId);
-
       if (overCard) {
         targetColumnId = overCard.columnId;
       }
@@ -443,7 +428,6 @@ export const Board: React.FC = () => {
       newIndex = overCardIndex !== -1 ? overCardIndex : 0;
     } else {
       const targetColumn = boardData.columns.find(col => col.id === targetColumnId);
-
       newIndex = targetColumn?.cardIds.length ?? 0;
     }
 
@@ -459,17 +443,14 @@ export const Board: React.FC = () => {
   const moveCard = (cardId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
     setBoardData(prev => {
       const card = prev.cards.find(c => c.id === cardId);
-
       if (!card) return prev;
 
       if (fromColumnId === toColumnId) {
         // Перемещение внутри одной колонки
         const column = prev.columns.find(col => col.id === fromColumnId);
-
         if (!column) return prev;
 
         const oldIndex = column.cardIds.indexOf(cardId);
-
         if (oldIndex === -1) return prev;
 
         const newCardIds = arrayMove(column.cardIds, oldIndex, newIndex);
@@ -493,18 +474,14 @@ export const Board: React.FC = () => {
               cardIds: column.cardIds.filter(id => id !== cardId)
             };
           }
-
           if (column.id === toColumnId) {
             const newCardIds = [...column.cardIds];
-
             newCardIds.splice(newIndex, 0, cardId);
-
             return {
               ...column,
               cardIds: newCardIds
             };
           }
-
           return column;
         });
 
@@ -540,7 +517,6 @@ export const Board: React.FC = () => {
   const moveMultipleCards = (cardIds: string[], fromColumnId: string, toColumnId: string, startIndex: number) => {
     setBoardData(prev => {
       const cardsToMove = prev.cards.filter(card => cardIds.includes(card.id));
-
       if (cardsToMove.length === 0) return prev;
 
       const updatedCards = prev.cards.map(card =>
@@ -555,21 +531,17 @@ export const Board: React.FC = () => {
             cardIds: column.cardIds.filter(id => !cardIds.includes(id))
           };
         }
-
         if (column.id === toColumnId) {
           // Добавляем карточки в целевую колонку начиная с указанной позиции
           const newCardIds = [...column.cardIds];
-
           cardIds.forEach((cardId, index) => {
             newCardIds.splice(startIndex + index, 0, cardId);
           });
-
           return {
             ...column,
             cardIds: newCardIds
           };
         }
-
         return column;
       });
 
@@ -602,15 +574,12 @@ export const Board: React.FC = () => {
 
   const getColumnTitle = (columnId?: string) => {
     if (!columnId) return '';
-
     const column = boardData.columns.find(col => col.id === columnId);
-
     return column?.title || '';
   };
 
   const getCardHistory = (cardId?: string) => {
     if (!cardId) return [];
-
     return boardData.history.filter(record => record.cardId === cardId);
   };
 

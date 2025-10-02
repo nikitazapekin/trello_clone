@@ -1,17 +1,16 @@
-import React from 'react';
-
-import type { Card as CardType } from '../../types';
-
+import React, { useRef, useState, useCallback } from 'react';
 import { 
-  CardBadge,
-  CardBadges,
-  CardCheckbox,
   CardContainer, 
+  CardTitle, 
   CardDescription, 
-  CardImagePreview,
-  CardLabel,
   CardLabels,
-  CardTitle} from './styled';
+  CardLabel,
+  CardBadges,
+  CardBadge,
+  CardImagePreview,
+  CardCheckbox
+} from './styled';
+import { Card as CardType } from '../../types';
 
 interface CardProps {
   card: CardType;
@@ -38,6 +37,39 @@ export const Card: React.FC<CardProps> = ({
     checklist.items
   ).length;
 
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
+  const [isLongPressing, setIsLongPressing] = useState(false);
+
+  // Обработчик long press для активации множественного выбора на мобильных
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (isMultiSelectMode) return;
+    
+    longPressTimer.current = setTimeout(() => {
+      setIsLongPressing(true);
+      onToggleSelection?.(card.id);
+    }, 500); // 500ms для long press
+  }, [card.id, isMultiSelectMode, onToggleSelection]);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    if (isLongPressing) {
+      setIsLongPressing(false);
+      e.preventDefault(); // Предотвращаем клик после long press
+    }
+  }, [isLongPressing]);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    // Отменяем long press если пользователь начал двигать пальцем
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }, []);
+
   const handleCheckboxClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSelection?.(card.id);
@@ -53,7 +85,10 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <CardContainer 
-      onClick={handleCardClick} 
+      onClick={handleCardClick}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
       $isDragging={isDragging}
       $isSelected={isSelected}
       $isMultiSelectMode={isMultiSelectMode}
@@ -110,6 +145,5 @@ const getLabelColor = (label: string): string => {
     'исправлено': '#1890ff',
     'тест': '#722ed1'
   };
-
   return colors[label] || '#d9d9d9';
 };
