@@ -21,7 +21,7 @@ import { Column } from '@components/Column';
 import { Card } from '../Card';
 import { CardModal } from '@components/Modal';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { BoardData, Column as ColumnType, Card as CardType, HistoryAction,  HistoryChange } from '../../types';
+import { BoardData, Column as ColumnType, Card as CardType, HistoryAction, HistoryField, HistoryChange } from '../../types';
 
 const initialData: BoardData = {
   columns: [
@@ -89,13 +89,13 @@ export const Board: React.FC = () => {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 5,
+        distance: 8, // Увеличил расстояние для лучшей работы
       },
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,
-        tolerance: 5,
+        delay: 200, // Уменьшил задержку для более быстрого отклика
+        tolerance: 10, // Увеличил допуск для лучшего определения жеста
       },
     })
   );
@@ -365,7 +365,7 @@ export const Board: React.FC = () => {
   };
 
   const handleDragOver = (event: DragOverEvent) => {
-    const { over } = event;
+    const { active, over } = event;
     
     if (!over) {
       setActiveColumnId(null);
@@ -373,21 +373,28 @@ export const Board: React.FC = () => {
     }
 
     const overId = over.id as string;
-     
+    const activeId = active.id as string;
+
+    // Находим активную карточку
+    const activeCard = boardData.cards.find(card => card.id === activeId);
+    if (!activeCard) return;
+
+    let targetColumnId: string | undefined;
+
     const overColumn = boardData.columns.find(col => col.id === overId);
     if (overColumn) {
-      setActiveColumnId(overColumn.id);
-      return;
+      targetColumnId = overColumn.id;
+    } else {
+      const overCard = boardData.cards.find(card => card.id === overId);
+      if (overCard) {
+        targetColumnId = overCard.columnId;
+      } else if (over.data?.current?.type === 'column') {
+        targetColumnId = overId;
+      }
     }
-   
-    const overCard = boardData.cards.find(card => card.id === overId);
-    if (overCard) {
-      setActiveColumnId(overCard.columnId);
-      return;
-    }
-   
-    if (over.data?.current?.type === 'column') {
-      setActiveColumnId(overId);
+
+    if (targetColumnId) {
+      setActiveColumnId(targetColumnId);
     }
   };  
 
