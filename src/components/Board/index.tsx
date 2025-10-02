@@ -20,7 +20,7 @@ import { Column } from '@components/Column';
 import { Card } from '../Card';
 import { CardModal } from '@components/Modal';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { BoardData, Column as ColumnType, Card as CardType, HistoryAction, HistoryField } from '../../types';
+import { BoardData, Column as ColumnType, Card as CardType, HistoryAction, HistoryField, HistoryChange } from '../../types';
 
 const initialData: BoardData = {
   columns: [
@@ -92,25 +92,6 @@ export const Board: React.FC = () => {
   );
 
   const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
-  const addHistoryRecord = (cardId: string, action: HistoryAction, changes: Array<{
-    field: HistoryField;
-    oldValue: string | null | CardType;
-    newValue: string | null | CardType;
-  }>) => {
-    const historyRecord = {
-      id: generateId(),
-      cardId,
-      action,
-      timestamp: new Date().toISOString(),
-      changes
-    };
-
-    setBoardData(prev => ({
-      ...prev,
-      history: [historyRecord, ...prev.history.slice(0, 49)]
-    }));
-  };
  
   const addColumn = () => {
     const newColumn: ColumnType = {
@@ -153,9 +134,21 @@ export const Board: React.FC = () => {
       const card = prev.cards.find(c => c.id === cardId);
       if (!card) return prev;
 
-      addHistoryRecord(cardId, 'Удаление карточки', [
-        { field: 'card', oldValue: card, newValue: null }
-      ]);
+      const changes: HistoryChange[] = [
+        { 
+          field: 'card', 
+          oldValue: card, 
+          newValue: null 
+        }
+      ];
+
+      const historyRecord = {
+        id: generateId(),
+        cardId,
+        action: 'Удаление карточки' as HistoryAction,
+        timestamp: new Date().toISOString(),
+        changes
+      };
 
       return {
         ...prev,
@@ -163,7 +156,8 @@ export const Board: React.FC = () => {
         columns: prev.columns.map(col => ({
           ...col,
           cardIds: col.cardIds.filter(id => id !== cardId)
-        }))
+        })),
+        history: [historyRecord, ...prev.history.slice(0, 49)]
       };
     });
     closeModal();
@@ -214,9 +208,21 @@ export const Board: React.FC = () => {
         updatedAt: new Date().toISOString()
       };
 
-      addHistoryRecord(newCard.id, 'Создание карточки', [
-        { field: 'card', oldValue: null, newValue: newCard }
-      ]);
+      const changes: HistoryChange[] = [
+        { 
+          field: 'card', 
+          oldValue: null, 
+          newValue: newCard
+        }
+      ];
+
+      const historyRecord = {
+        id: generateId(),
+        cardId: newCard.id,
+        action: 'Создание карточки' as HistoryAction,
+        timestamp: new Date().toISOString(),
+        changes
+      };
 
       setBoardData(prev => ({
         ...prev,
@@ -225,18 +231,16 @@ export const Board: React.FC = () => {
           col.id === modalState.columnId 
             ? { ...col, cardIds: [...col.cardIds, newCard.id] }
             : col
-        )
+        ),
+        history: [historyRecord, ...prev.history.slice(0, 49)]
       }));
       
       closeModal();
       
     } else if (modalState.mode === 'edit' && modalState.card) {
-      const changes: Array<{
-        field: HistoryField;
-        oldValue: string | null | CardType;
-        newValue: string | null | CardType;
-      }> = [];
+      const changes: HistoryChange[] = [];
       
+      // Проверяем изменения в названии
       if (modalState.card.title !== cardData.title) {
         changes.push({ 
           field: 'title', 
@@ -244,6 +248,8 @@ export const Board: React.FC = () => {
           newValue: cardData.title 
         });
       }
+      
+      // Проверяем изменения в описании
       if (modalState.card.description !== cardData.description) {
         changes.push({ 
           field: 'description', 
@@ -251,9 +257,49 @@ export const Board: React.FC = () => {
           newValue: cardData.description 
         });
       }
+      
+      // Проверяем изменения в метках
+      const oldLabels = modalState.card.labels || [];
+      const newLabels = cardData.labels || [];
+      if (JSON.stringify(oldLabels) !== JSON.stringify(newLabels)) {
+        changes.push({ 
+          field: 'labels', 
+          oldValue: oldLabels.join(', '), 
+          newValue: newLabels.join(', ') 
+        });
+      }
+      
+      // Проверяем изменения в чек-листах
+      const oldChecklists = modalState.card.checklists || [];
+      const newChecklists = cardData.checklists || [];
+      if (JSON.stringify(oldChecklists) !== JSON.stringify(newChecklists)) {
+        changes.push({ 
+          field: 'checklists', 
+          oldValue: `Чек-листов: ${oldChecklists.length}`, 
+          newValue: `Чек-листов: ${newChecklists.length}` 
+        });
+      }
+      
+      // Проверяем изменения в изображениях
+      const oldImages = modalState.card.images || [];
+      const newImages = cardData.images || [];
+      if (JSON.stringify(oldImages) !== JSON.stringify(newImages)) {
+        changes.push({ 
+          field: 'images', 
+          oldValue: `Изображений: ${oldImages.length}`, 
+          newValue: `Изображений: ${newImages.length}` 
+        });
+      }
 
+      let historyRecord = null;
       if (changes.length > 0) {
-        addHistoryRecord(modalState.card.id, 'Изменение карточки', changes);
+        historyRecord = {
+          id: generateId(),
+          cardId: modalState.card.id,
+          action: 'Изменение карточки' as HistoryAction,
+          timestamp: new Date().toISOString(),
+          changes
+        };
       }
 
       setBoardData(prev => ({
@@ -266,7 +312,10 @@ export const Board: React.FC = () => {
                 updatedAt: new Date().toISOString()
               }
             : card
-        )
+        ),
+        history: historyRecord 
+          ? [historyRecord, ...prev.history.slice(0, 49)]
+          : prev.history
       }));
       
       closeModal();
@@ -396,18 +445,30 @@ export const Board: React.FC = () => {
           return column;
         });
 
-        addHistoryRecord(cardId, 'Перемещение карточки', [
+        const fromColumnTitle = prev.columns.find(col => col.id === fromColumnId)?.title || fromColumnId;
+        const toColumnTitle = prev.columns.find(col => col.id === toColumnId)?.title || toColumnId;
+
+        const changes: HistoryChange[] = [
           { 
             field: 'column', 
-            oldValue: fromColumnId, 
-            newValue: toColumnId 
+            oldValue: fromColumnTitle, 
+            newValue: toColumnTitle 
           }
-        ]);
+        ];
+
+        const historyRecord = {
+          id: generateId(),
+          cardId,
+          action: 'Перемещение карточки' as HistoryAction,
+          timestamp: new Date().toISOString(),
+          changes
+        };
 
         return {
           ...prev,
           columns: updatedColumns,
-          cards: updatedCards
+          cards: updatedCards,
+          history: [historyRecord, ...prev.history.slice(0, 49)]
         };
       }
     });

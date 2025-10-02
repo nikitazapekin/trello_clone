@@ -66,4 +66,7 @@ export type HistoryField =
   | 'card'
   | 'title'
   | 'description'
+  | 'labels'
+  | 'checklists'
+  | 'images'
   | 'column';
