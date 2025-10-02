@@ -4,6 +4,11 @@ interface CardContainerProps {
   $isDragging?: boolean; // Используем $ для transient props (styled-components v6+)
 }
 
+
+export const CardBadges = styled.div`
+
+
+`
 export const CardContainer = styled.div<CardContainerProps>`
   background-color: #ffffff;
   border-radius: 6px;
@@ -20,6 +25,14 @@ export const CardContainer = styled.div<CardContainerProps>`
 `;
 
 export const CardTitle = styled.h4`
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+`;
+
+
+export const CardHistory = styled.h4`
   margin: 0 0 8px 0;
   font-size: 14px;
   font-weight: 600;

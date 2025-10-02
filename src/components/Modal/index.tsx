@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ModalOverlay,
   ModalContent,
@@ -10,9 +10,30 @@ import {
   Input,
   TextArea,
   ButtonGroup,
-  Button
+  Button,
+  TabContainer,
+  TabButton,
+  TabContent,
+  ListContainer,
+  ListItem,
+  ListInput,
+  AddButton,
+  DeleteButton,
+  ImageUploadArea,
+  ImagePreview,
+  ImageContainer,
+  LabelContainer,
+  LabelItem,
+  ColorInput,
+  ChecklistContainer,
+  ChecklistItem,
+  ChecklistHeader,
+  HistoryContainer,
+  HistoryItem,
+  HistoryTime,
+  HistoryAction
 } from './styled';
-import { Card } from '../../types';
+import { Card, CardHistory, CardList, CardImage, CardLabel, CardChecklist, ChecklistItem as ChecklistItemType } from '../../types';
 
 interface CardModalProps {
   card: Card | null;
@@ -21,6 +42,7 @@ interface CardModalProps {
   onClose: () => void;
   mode: 'create' | 'edit';
   columnTitle?: string;
+  cardHistory?: CardHistory[];
 }
 
 export const CardModal: React.FC<CardModalProps> = ({
@@ -29,34 +51,207 @@ export const CardModal: React.FC<CardModalProps> = ({
   onSave,
   onClose,
   mode,
-  columnTitle
+  columnTitle,
+  cardHistory = []
 }) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [activeTab, setActiveTab] = useState<'main' | 'lists' | 'images' | 'labels' | 'checklists' | 'history'>('main');
+  const [lists, setLists] = useState<CardList[]>([]);
+  const [images, setImages] = useState<CardImage[]>([]);
+  const [labels, setLabels] = useState<CardLabel[]>([]);
+  const [checklists, setChecklists] = useState<CardChecklist[]>([]);
+  const [newListItem, setNewListItem] = useState<{ [listId: string]: string }>({});
+  const [newChecklistItem, setNewChecklistItem] = useState<{ [checklistId: string]: string }>({});
+  
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (card) {
       setTitle(card.title);
       setDescription(card.description);
+      setLists(card.lists || []);
+      setImages(card.images || []);
+      setLabels(card.labels || []);
+      setChecklists(card.checklists || []);
     } else {
       setTitle('');
       setDescription('');
+      setLists([]);
+      setImages([]);
+      setLabels([]);
+      setChecklists([]);
     }
+    setActiveTab('main');
   }, [card, isOpen]);
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setTitle(e.target.value);
+  const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Lists functionality
+  const addList = () => {
+    const newList: CardList = {
+      id: generateId(),
+      title: 'Новый список',
+      items: []
+    };
+    setLists(prev => [...prev, newList]);
   };
 
-  const handleDescriptionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDescription(e.target.value);
+  const updateListTitle = (listId: string, title: string) => {
+    setLists(prev => prev.map(list => 
+      list.id === listId ? { ...list, title } : list
+    ));
+  };
+
+  const deleteList = (listId: string) => {
+    setLists(prev => prev.filter(list => list.id !== listId));
+  };
+
+  const addListItem = (listId: string) => {
+    const text = newListItem[listId]?.trim();
+    if (!text) return;
+
+    setLists(prev => prev.map(list => 
+      list.id === listId 
+        ? { ...list, items: [...list.items, { id: generateId(), text, completed: false }] }
+        : list
+    ));
+    setNewListItem(prev => ({ ...prev, [listId]: '' }));
+  };
+
+  const toggleListItem = (listId: string, itemId: string) => {
+    setLists(prev => prev.map(list => 
+      list.id === listId 
+        ? { 
+            ...list, 
+            items: list.items.map(item => 
+              item.id === itemId ? { ...item, completed: !item.completed } : item
+            )
+          }
+        : list
+    ));
+  };
+
+  const deleteListItem = (listId: string, itemId: string) => {
+    setLists(prev => prev.map(list => 
+      list.id === listId 
+        ? { ...list, items: list.items.filter(item => item.id !== itemId) }
+        : list
+    ));
+  };
+
+  // Images functionality
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const newImage: CardImage = {
+          id: generateId(),
+          url: e.target?.result as string,
+          name: file.name
+        };
+        setImages(prev => [...prev, newImage]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const deleteImage = (imageId: string) => {
+    setImages(prev => prev.filter(image => image.id !== imageId));
+  };
+
+  // Labels functionality
+  const addLabel = () => {
+    const newLabel: CardLabel = {
+      id: generateId(),
+      text: 'Новая метка',
+      color: '#ff6b6b'
+    };
+    setLabels(prev => [...prev, newLabel]);
+  };
+
+  const updateLabel = (labelId: string, field: 'text' | 'color', value: string) => {
+    setLabels(prev => prev.map(label => 
+      label.id === labelId ? { ...label, [field]: value } : label
+    ));
+  };
+
+  const deleteLabel = (labelId: string) => {
+    setLabels(prev => prev.filter(label => label.id !== labelId));
+  };
+
+  // Checklists functionality
+  const addChecklist = () => {
+    const newChecklist: CardChecklist = {
+      id: generateId(),
+      title: 'Новый чеклист',
+      items: []
+    };
+    setChecklists(prev => [...prev, newChecklist]);
+  };
+
+  const updateChecklistTitle = (checklistId: string, title: string) => {
+    setChecklists(prev => prev.map(checklist => 
+      checklist.id === checklistId ? { ...checklist, title } : checklist
+    ));
+  };
+
+  const deleteChecklist = (checklistId: string) => {
+    setChecklists(prev => prev.filter(checklist => checklist.id !== checklistId));
+  };
+
+  const addChecklistItem = (checklistId: string) => {
+    const text = newChecklistItem[checklistId]?.trim();
+    if (!text) return;
+
+    setChecklists(prev => prev.map(checklist => 
+      checklist.id === checklistId 
+        ? { 
+            ...checklist, 
+            items: [...checklist.items, { id: generateId(), text, completed: false }] 
+          }
+        : checklist
+    ));
+    setNewChecklistItem(prev => ({ ...prev, [checklistId]: '' }));
+  };
+
+  const toggleChecklistItem = (checklistId: string, itemId: string) => {
+    setChecklists(prev => prev.map(checklist => 
+      checklist.id === checklistId 
+        ? { 
+            ...checklist, 
+            items: checklist.items.map(item => 
+              item.id === itemId ? { ...item, completed: !item.completed } : item
+            )
+          }
+        : checklist
+    ));
+  };
+
+  const deleteChecklistItem = (checklistId: string, itemId: string) => {
+    setChecklists(prev => prev.map(checklist => 
+      checklist.id === checklistId 
+        ? { ...checklist, items: checklist.items.filter(item => item.id !== itemId) }
+        : checklist
+    ));
   };
 
   const handleSave = () => {
     if (title.trim()) {
       onSave({
         title: title.trim(),
-        description: description.trim()
+        description: description.trim(),
+        lists,
+        images,
+        labels,
+        checklists
       });
       onClose();
     }
@@ -76,11 +271,30 @@ export const CardModal: React.FC<CardModalProps> = ({
     }
   };
 
+  const formatHistoryTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleString('ru-RU');
+  };
+
+  const getHistoryActionText = (history: CardHistory) => {
+    switch (history.action) {
+      case 'CARD_CREATED':
+        return `Создана карточка "${history.newValue}"`;
+      case 'TITLE_CHANGED':
+        return `Название изменено с "${history.oldValue}" на "${history.newValue}"`;
+      case 'DESCRIPTION_CHANGED':
+        return 'Описание изменено';
+      case 'CARD_MOVED':
+        return `Перемещена из "${history.oldValue}" в "${history.newValue}"`;
+      default:
+        return history.action;
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
     <ModalOverlay onClick={handleOverlayClick} onKeyDown={handleKeyDown}>
-      <ModalContent>
+      <ModalContent style={{ maxWidth: '600px', width: '90%' }}>
         <ModalHeader>
           <ModalTitle>
             {mode === 'create' ? 'Создать карточку' : 'Редактировать карточку'}
@@ -89,27 +303,260 @@ export const CardModal: React.FC<CardModalProps> = ({
           <CloseButton onClick={onClose}>×</CloseButton>
         </ModalHeader>
 
-        <FormGroup>
-          <Label htmlFor="card-title">Название *</Label>
-          <Input
-            id="card-title"
-            value={title}
-            onChange={handleTitleChange}
-            placeholder="Введите название карточки"
-            autoFocus
-          />
-        </FormGroup>
+        <TabContainer>
+          <TabButton 
+            $active={activeTab === 'main'} 
+            onClick={() => setActiveTab('main')}
+          >
+            Основное
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'lists'} 
+            onClick={() => setActiveTab('lists')}
+          >
+            Списки
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'images'} 
+            onClick={() => setActiveTab('images')}
+          >
+            Изображения
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'labels'} 
+            onClick={() => setActiveTab('labels')}
+          >
+            Метки
+          </TabButton>
+          <TabButton 
+            $active={activeTab === 'checklists'} 
+            onClick={() => setActiveTab('checklists')}
+          >
+            Чеклисты
+          </TabButton>
+          {mode === 'edit' && (
+            <TabButton 
+              $active={activeTab === 'history'} 
+              onClick={() => setActiveTab('history')}
+            >
+              История
+            </TabButton>
+          )}
+        </TabContainer>
 
-        <FormGroup>
-          <Label htmlFor="card-description">Описание</Label>
-          <TextArea
-            id="card-description"
-            value={description}
-            onChange={handleDescriptionChange}
-            placeholder="Введите описание карточки"
-            rows={4}
-          />
-        </FormGroup>
+        <TabContent>
+          {activeTab === 'main' && (
+            <>
+              <FormGroup>
+                <Label htmlFor="card-title">Название *</Label>
+                <Input
+                  id="card-title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Введите название карточки"
+                  autoFocus
+                />
+              </FormGroup>
+
+              <FormGroup>
+                <Label htmlFor="card-description">Описание</Label>
+                <TextArea
+                  id="card-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Введите описание карточки"
+                  rows={4}
+                />
+              </FormGroup>
+            </>
+          )}
+
+          {activeTab === 'lists' && (
+            <div>
+              <AddButton onClick={addList}>+ Добавить список</AddButton>
+              {lists.map(list => (
+                <ListContainer key={list.id}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <Input
+                      value={list.title}
+                      onChange={(e) => updateListTitle(list.id, e.target.value)}
+                      placeholder="Название списка"
+                    />
+                    <DeleteButton onClick={() => deleteList(list.id)}>×</DeleteButton>
+                  </div>
+                  
+                  {list.items.map(item => (
+                    <ListItem key={item.id}>
+                      <input
+                        type="checkbox"
+                        checked={item.completed}
+                        onChange={() => toggleListItem(list.id, item.id)}
+                      />
+                      <span style={{ 
+                        textDecoration: item.completed ? 'line-through' : 'none',
+                        flex: 1 
+                      }}>
+                        {item.text}
+                      </span>
+                      <DeleteButton 
+                        onClick={() => deleteListItem(list.id, item.id)}
+                        style={{ fontSize: '12px', padding: '2px 6px' }}
+                      >
+                        ×
+                      </DeleteButton>
+                    </ListItem>
+                  ))}
+                  
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                    <ListInput
+                      value={newListItem[list.id] || ''}
+                      onChange={(e) => setNewListItem(prev => ({ ...prev, [list.id]: e.target.value }))}
+                      placeholder="Новый элемент списка"
+                      onKeyPress={(e) => e.key === 'Enter' && addListItem(list.id)}
+                    />
+                    <Button onClick={() => addListItem(list.id)}>Добавить</Button>
+                  </div>
+                </ListContainer>
+              ))}
+            </div>
+          )}
+
+          {activeTab === 'images' && (
+            <div>
+              <ImageUploadArea 
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Нажмите для загрузки изображений
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  style={{ display: 'none' }}
+                />
+              </ImageUploadArea>
+              
+              <ImageContainer>
+                {images.map(image => (
+                  <ImagePreview key={image.id}>
+                    <img src={image.url} alt={image.name} style={{ maxWidth: '100%', maxHeight: '150px' }} />
+                    <div style={{ fontSize: '12px', marginTop: '4px' }}>{image.name}</div>
+                    <DeleteButton 
+                      onClick={() => deleteImage(image.id)}
+                      style={{ position: 'absolute', top: '4px', right: '4px' }}
+                    >
+                      ×
+                    </DeleteButton>
+                  </ImagePreview>
+                ))}
+              </ImageContainer>
+            </div>
+          )}
+
+          {activeTab === 'labels' && (
+            <div>
+              <AddButton onClick={addLabel}>+ Добавить метку</AddButton>
+              <LabelContainer>
+                {labels.map(label => (
+                  <LabelItem key={label.id} $color={label.color}>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <ColorInput
+                        type="color"
+                        value={label.color}
+                        onChange={(e) => updateLabel(label.id, 'color', e.target.value)}
+                      />
+                      <Input
+                        value={label.text}
+                        onChange={(e) => updateLabel(label.id, 'text', e.target.value)}
+                        placeholder="Текст метки"
+                        style={{ flex: 1 }}
+                      />
+                      <DeleteButton onClick={() => deleteLabel(label.id)}>×</DeleteButton>
+                    </div>
+                  </LabelItem>
+                ))}
+              </LabelContainer>
+            </div>
+          )}
+
+          {activeTab === 'checklists' && (
+            <div>
+              <AddButton onClick={addChecklist}>+ Добавить чеклист</AddButton>
+              {checklists.map(checklist => {
+                const totalItems = checklist.items.length;
+                const completedItems = checklist.items.filter(item => item.completed).length;
+                
+                return (
+                  <ChecklistContainer key={checklist.id}>
+                    <ChecklistHeader>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                        <Input
+                          value={checklist.title}
+                          onChange={(e) => updateChecklistTitle(checklist.id, e.target.value)}
+                          placeholder="Название чеклиста"
+                        />
+                        <span style={{ fontSize: '12px', color: '#666' }}>
+                          {completedItems}/{totalItems}
+                        </span>
+                      </div>
+                      <DeleteButton onClick={() => deleteChecklist(checklist.id)}>×</DeleteButton>
+                    </ChecklistHeader>
+                    
+                    {checklist.items.map(item => (
+                      <ChecklistItem key={item.id}>
+                        <input
+                          type="checkbox"
+                          checked={item.completed}
+                          onChange={() => toggleChecklistItem(checklist.id, item.id)}
+                        />
+                        <span style={{ 
+                          textDecoration: item.completed ? 'line-through' : 'none',
+                          flex: 1 
+                        }}>
+                          {item.text}
+                        </span>
+                        <DeleteButton 
+                          onClick={() => deleteChecklistItem(checklist.id, item.id)}
+                          style={{ fontSize: '12px', padding: '2px 6px' }}
+                        >
+                          ×
+                        </DeleteButton>
+                      </ChecklistItem>
+                    ))}
+                    
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <ListInput
+                        value={newChecklistItem[checklist.id] || ''}
+                        onChange={(e) => setNewChecklistItem(prev => ({ ...prev, [checklist.id]: e.target.value }))}
+                        placeholder="Новый пункт чеклиста"
+                        onKeyPress={(e) => e.key === 'Enter' && addChecklistItem(checklist.id)}
+                      />
+                      <Button onClick={() => addChecklistItem(checklist.id)}>Добавить</Button>
+                    </div>
+                  </ChecklistContainer>
+                );
+              })}
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <HistoryContainer>
+              {cardHistory.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#666', padding: '20px' }}>
+                  История изменений отсутствует
+                </div>
+              ) : (
+                cardHistory.map(history => (
+                  <HistoryItem key={history.id}>
+                    <HistoryAction>{getHistoryActionText(history)}</HistoryAction>
+                    <HistoryTime>{formatHistoryTime(history.timestamp)}</HistoryTime>
+                  </HistoryItem>
+                ))
+              )}
+            </HistoryContainer>
+          )}
+        </TabContent>
 
         <ButtonGroup>
           <Button onClick={onClose} type="button">Отмена</Button>
