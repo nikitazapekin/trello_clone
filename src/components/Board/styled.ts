@@ -33,3 +33,32 @@ export const AddColumnButton = styled.button`
     color: #1890ff;
   }
 `;
+
+
+ 
+export const MultiSelectButton = styled.button<{ $isActive: boolean }>`
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+  padding: 12px 20px;
+  background-color: ${props => props.$isActive ? '#1890ff' : '#ffffff'};
+  color: ${props => props.$isActive ? '#ffffff' : '#1890ff'};
+  border: 2px solid #1890ff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: ${props => props.$isActive ? '#40a9ff' : '#f0f8ff'};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+`;

@@ -7,7 +7,8 @@ import {
   CardLabel,
   CardBadges,
   CardBadge,
-  CardImagePreview
+  CardImagePreview,
+  CardCheckbox
 } from './styled';
 import { Card as CardType } from '../../types';
 
@@ -15,9 +16,19 @@ interface CardProps {
   card: CardType;
   onClick: () => void;
   isDragging?: boolean;
+  isMultiSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (cardId: string) => void;
 }
 
-export const Card: React.FC<CardProps> = ({ card, onClick, isDragging }) => {
+export const Card: React.FC<CardProps> = ({ 
+  card, 
+  onClick, 
+  isDragging,
+  isMultiSelectMode = false,
+  isSelected = false,
+  onToggleSelection
+}) => {
   const completedChecklistItems = card.checklists.flatMap(checklist => 
     checklist.items.filter(item => item.completed)
   ).length;
@@ -26,11 +37,35 @@ export const Card: React.FC<CardProps> = ({ card, onClick, isDragging }) => {
     checklist.items
   ).length;
 
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleSelection?.(card.id);
+  };
+
+  const handleCardClick = () => {
+    if (isMultiSelectMode) {
+      onToggleSelection?.(card.id);
+    } else {
+      onClick();
+    }
+  };
+
   return (
     <CardContainer 
-      onClick={onClick} 
+      onClick={handleCardClick} 
       $isDragging={isDragging}
+      $isSelected={isSelected}
+      $isMultiSelectMode={isMultiSelectMode}
     >
+      {isMultiSelectMode && (
+        <CardCheckbox 
+          type="checkbox" 
+          checked={isSelected}
+          onChange={() => {}} // Пустая функция для избежания предупреждений
+          onClick={handleCheckboxClick}
+        />
+      )}
+      
       {card.images.length > 0 && (
         <CardImagePreview>
           <img src={card.images[0].url} alt={card.images[0].name} />

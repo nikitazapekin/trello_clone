@@ -7,9 +7,18 @@ import { Card as CardType } from '../../types';
 interface SortableCardProps {
   card: CardType;
   onClick: () => void;
+  isMultiSelectMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (cardId: string) => void;
 }
 
-export const SortableCard: React.FC<SortableCardProps> = ({ card, onClick }) => {
+export const SortableCard: React.FC<SortableCardProps> = ({ 
+  card, 
+  onClick, 
+  isMultiSelectMode = false,
+  isSelected = false,
+  onToggleSelection
+}) => {
   const {
     attributes,
     listeners,
@@ -33,7 +42,14 @@ export const SortableCard: React.FC<SortableCardProps> = ({ card, onClick }) => 
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <Card card={card} onClick={onClick} isDragging={isDragging} />
+      <Card 
+        card={card} 
+        onClick={onClick} 
+        isDragging={isDragging}
+        isMultiSelectMode={isMultiSelectMode}
+        isSelected={isSelected}
+        onToggleSelection={onToggleSelection}
+      />
     </div>
   );
 };

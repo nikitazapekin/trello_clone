@@ -15,7 +15,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from '@dnd-kit/sortable';
-import { BoardContainer, AddColumnButton } from './styled';
+import { BoardContainer, AddColumnButton, MultiSelectButton } from './styled';
 import { Column } from '@components/Column';
 import { Card } from '../Card';
 import { CardModal } from '@components/Modal';
@@ -82,6 +82,8 @@ export const Board: React.FC = () => {
   
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [activeColumnId, setActiveColumnId] = useState<string | null>(null);
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -92,6 +94,34 @@ export const Board: React.FC = () => {
   );
 
   const generateId = () => `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // Функции для множественного выбора
+  const toggleMultiSelectMode = () => {
+    setIsMultiSelectMode(!isMultiSelectMode);
+    if (isMultiSelectMode) {
+      setSelectedCards(new Set());
+    }
+  };
+
+  const toggleCardSelection = (cardId: string) => {
+    if (!isMultiSelectMode) return;
+    
+    setSelectedCards(prev => {
+      const newSelection = new Set(prev);
+      if (newSelection.has(cardId)) {
+        newSelection.delete(cardId);
+      } else {
+        newSelection.add(cardId);
+      }
+      return newSelection;
+    });
+  };
+
+  const clearSelection = () => {
+    setSelectedCards(new Set());
+  };
+
+  const isCardSelected = (cardId: string) => selectedCards.has(cardId);
  
   const addColumn = () => {
     const newColumn: ColumnType = {
@@ -240,7 +270,6 @@ export const Board: React.FC = () => {
     } else if (modalState.mode === 'edit' && modalState.card) {
       const changes: HistoryChange[] = [];
       
-      // Проверяем изменения в названии
       if (modalState.card.title !== cardData.title) {
         changes.push({ 
           field: 'title', 
@@ -249,7 +278,6 @@ export const Board: React.FC = () => {
         });
       }
       
-      // Проверяем изменения в описании
       if (modalState.card.description !== cardData.description) {
         changes.push({ 
           field: 'description', 
@@ -258,7 +286,6 @@ export const Board: React.FC = () => {
         });
       }
       
-      // Проверяем изменения в метках
       const oldLabels = modalState.card.labels || [];
       const newLabels = cardData.labels || [];
       if (JSON.stringify(oldLabels) !== JSON.stringify(newLabels)) {
@@ -269,7 +296,6 @@ export const Board: React.FC = () => {
         });
       }
       
-      // Проверяем изменения в чек-листах
       const oldChecklists = modalState.card.checklists || [];
       const newChecklists = cardData.checklists || [];
       if (JSON.stringify(oldChecklists) !== JSON.stringify(newChecklists)) {
@@ -280,7 +306,6 @@ export const Board: React.FC = () => {
         });
       }
       
-      // Проверяем изменения в изображениях
       const oldImages = modalState.card.images || [];
       const newImages = cardData.images || [];
       if (JSON.stringify(oldImages) !== JSON.stringify(newImages)) {
@@ -399,7 +424,13 @@ export const Board: React.FC = () => {
       newIndex = targetColumn?.cardIds.length ?? 0;
     }
 
-    moveCard(activeId, activeCard.columnId, targetColumnId, newIndex);
+    // Если есть выбранные карточки и активная карточка среди них, перемещаем все выбранные
+    if (selectedCards.size > 0 && selectedCards.has(activeId)) {
+      moveMultipleCards(Array.from(selectedCards), activeCard.columnId, targetColumnId, newIndex);
+      clearSelection();
+    } else {
+      moveCard(activeId, activeCard.columnId, targetColumnId, newIndex);
+    }
   };
 
   const moveCard = (cardId: string, fromColumnId: string, toColumnId: string, newIndex: number) => {
@@ -408,6 +439,7 @@ export const Board: React.FC = () => {
       if (!card) return prev;
 
       if (fromColumnId === toColumnId) {
+        // Перемещение внутри одной колонки
         const column = prev.columns.find(col => col.id === fromColumnId);
         if (!column) return prev;
 
@@ -423,6 +455,7 @@ export const Board: React.FC = () => {
           )
         };
       } else {
+        // Перемещение между колонками
         const updatedCards = prev.cards.map(card =>
           card.id === cardId ? { ...card, columnId: toColumnId } : card
         );
@@ -474,6 +507,64 @@ export const Board: React.FC = () => {
     });
   };
 
+  const moveMultipleCards = (cardIds: string[], fromColumnId: string, toColumnId: string, startIndex: number) => {
+    setBoardData(prev => {
+      const cardsToMove = prev.cards.filter(card => cardIds.includes(card.id));
+      if (cardsToMove.length === 0) return prev;
+
+      const updatedCards = prev.cards.map(card =>
+        cardIds.includes(card.id) ? { ...card, columnId: toColumnId } : card
+      );
+
+      const updatedColumns = prev.columns.map(column => {
+        if (column.id === fromColumnId) {
+          // Удаляем все перемещаемые карточки из исходной колонки
+          return {
+            ...column,
+            cardIds: column.cardIds.filter(id => !cardIds.includes(id))
+          };
+        }
+        if (column.id === toColumnId) {
+          // Добавляем карточки в целевую колонку начиная с указанной позиции
+          const newCardIds = [...column.cardIds];
+          cardIds.forEach((cardId, index) => {
+            newCardIds.splice(startIndex + index, 0, cardId);
+          });
+          return {
+            ...column,
+            cardIds: newCardIds
+          };
+        }
+        return column;
+      });
+
+      const fromColumnTitle = prev.columns.find(col => col.id === fromColumnId)?.title || fromColumnId;
+      const toColumnTitle = prev.columns.find(col => col.id === toColumnId)?.title || toColumnId;
+
+      // Создаем записи истории для каждой перемещенной карточки
+      const historyRecords = cardIds.map(cardId => ({
+        id: generateId(),
+        cardId,
+        action: 'Перемещение карточки' as HistoryAction,
+        timestamp: new Date().toISOString(),
+        changes: [
+          { 
+            field: 'column', 
+            oldValue: fromColumnTitle, 
+            newValue: toColumnTitle 
+          }
+        ]
+      }));
+
+      return {
+        ...prev,
+        columns: updatedColumns,
+        cards: updatedCards,
+        history: [...historyRecords, ...prev.history.slice(0, 50 - historyRecords.length)]
+      };
+    });
+  };
+
   const getColumnTitle = (columnId?: string) => {
     if (!columnId) return '';
     const column = boardData.columns.find(col => col.id === columnId);
@@ -487,6 +578,14 @@ export const Board: React.FC = () => {
 
   return (
     <>
+      <MultiSelectButton 
+        onClick={toggleMultiSelectMode}
+        $isActive={isMultiSelectMode}
+      >
+        {isMultiSelectMode ? 'Отменить выбор' : 'Выбрать несколько'}
+        {selectedCards.size > 0 && ` (${selectedCards.size})`}
+      </MultiSelectButton>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -514,6 +613,9 @@ export const Board: React.FC = () => {
                   onDeleteColumn={deleteColumn}
                   onCardClick={openViewModal}
                   isActive={activeColumnId === column.id}
+                  isMultiSelectMode={isMultiSelectMode}
+                  selectedCards={selectedCards}
+                  onToggleCardSelection={toggleCardSelection}
                 />
               );
             })}
@@ -526,7 +628,13 @@ export const Board: React.FC = () => {
 
         <DragOverlay>
           {activeCard ? (
-            <Card card={activeCard} onClick={() => {}} isDragging />
+            <Card 
+              card={activeCard} 
+              onClick={() => {}} 
+              isDragging 
+              isMultiSelectMode={isMultiSelectMode}
+              isSelected={isCardSelected(activeCard.id)}
+            />
           ) : null}
         </DragOverlay>
       </DndContext>

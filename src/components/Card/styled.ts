@@ -4,6 +4,13 @@ interface CardContainerProps {
   $isDragging?: boolean;
 }
 
+
+interface CardContainerProps {
+  $isDragging?: boolean;
+  $isSelected?: boolean;
+  $isMultiSelectMode?: boolean;
+}
+
 export const CardContainer = styled.div<CardContainerProps>`
   background-color: #ffffff;
   border-radius: 6px;
@@ -13,16 +20,12 @@ export const CardContainer = styled.div<CardContainerProps>`
   border-left: 4px solid #1890ff;
   transition: all 0.2s;
   margin-bottom: 8px;
+  position: relative;
 
   &:hover {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
-
-  ${props => props.$isDragging && `
-    transform: rotate(5deg);
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-  `}
-`;
+`
 
 export const CardTitle = styled.h4`
   margin: 0 0 8px 0;
@@ -87,3 +90,15 @@ export const CardImagePreview = styled.div`
     object-fit: cover;
   }
 `;
+
+
+export const CardCheckbox = styled.input`
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  z-index: 2;
+`;
+
