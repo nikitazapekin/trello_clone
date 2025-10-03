@@ -1,3 +1,4 @@
+ 
 import React, { useRef, useCallback } from 'react';
 import { 
   CardContainer, 
@@ -39,13 +40,12 @@ export const Card: React.FC<CardProps> = ({
 
   const longPressTimer = useRef<number | null>(null);
 
-  // Обработчик long press для активации множественного выбора на мобильных
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     if (isMultiSelectMode) return;
     
     longPressTimer.current = window.setTimeout(() => {
       onToggleSelection?.(card.id);
-    }, 500); // 500ms для long press
+    }, 500);
   }, [card.id, isMultiSelectMode, onToggleSelection]);
 
   const handleTouchEnd = useCallback((e: React.TouchEvent) => {
@@ -56,7 +56,6 @@ export const Card: React.FC<CardProps> = ({
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    // Отменяем long press если пользователь начал двигать пальцем
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
       longPressTimer.current = null;
@@ -90,7 +89,7 @@ export const Card: React.FC<CardProps> = ({
         <CardCheckbox 
           type="checkbox" 
           checked={isSelected}
-          onChange={() => {}} // Пустая функция для избежания предупреждений
+          onChange={() => {}}
           onClick={handleCheckboxClick}
         />
       )}

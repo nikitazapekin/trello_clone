@@ -9,8 +9,14 @@ export const ColumnContainer = styled.div<{ $isActive?: boolean; $isOver?: boole
   display: flex;
   flex-direction: column;
   gap: 12px;
+  border: ${props => props.$isOver ? '2px dashed #007bff' : 'none'};
+  background-color: ${props => props.$isOver ? '#e6f7ff' : '#f0f0f0'};
 
-  
+  @media screen and (max-width: 1240px) {
+  width: 100%;
+  max-width: 100%;
+
+  }
 `;
 
 export const EmptyColumnDropZone = styled.div<{ $isOver?: boolean }>`
@@ -24,11 +30,24 @@ export const EmptyColumnDropZone = styled.div<{ $isOver?: boolean }>`
   font-size: 14px;
   text-align: center;
   padding: 0 12px;
-
-  
+  background-color: ${props => props.$isOver ? '#e6f7ff' : 'transparent'};
+  border-color: ${props => props.$isOver ? '#007bff' : '#ccc'};
 `;
 
-// Остальные стили остаются без изменений... 
+export const CardDropIndicator = styled.div`
+  height: 2px;
+  background: #007bff;
+  margin: 4px 0;
+  border-radius: 1px;
+  animation: pulse 1.5s infinite;
+
+  @keyframes pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 1; }
+    100% { opacity: 0.4; }
+  }
+`;
+
 export const ColumnHeader = styled.div`
   display: flex;
   justify-content: space-between;

@@ -146,6 +146,12 @@ export const TabList = styled.div`
   display: flex;
   border-bottom: 1px solid #ddd;
   margin-bottom: 20px;
+
+  @media screen  and (max-width: 768px) {
+ 
+    display:  grid;
+    grid-template-columns: repeat(2, 1fr);
+  }
 `;
 
 export const Tab = styled.button<{ $isActive: boolean }>`

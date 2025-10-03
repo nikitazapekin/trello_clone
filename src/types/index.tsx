@@ -9,6 +9,7 @@ export interface Card {
   createdAt: string;
   updatedAt: string;
 }
+ 
 
 export interface Image {
   id: string;
@@ -33,8 +34,9 @@ export interface Column {
   id: string;
   title: string;
   cardIds: string[];
+    order: number;
 }
-
+ 
 export interface BoardData {
   columns: Column[];
   cards: Card[];
@@ -70,3 +72,14 @@ export type HistoryField =
   | 'checklists'
   | 'images'
   | 'column';
+
+
+
+ 
+export interface CardImage {
+  id: string;
+  url: string;
+  name: string;
+}
+
+ 

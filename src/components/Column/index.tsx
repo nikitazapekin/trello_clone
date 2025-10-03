@@ -1,10 +1,9 @@
+ 
 import React, { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-
-import type { Card as CardType,Column as ColumnType } from '../../types';
+import type { Card as CardType, Column as ColumnType } from '../../types';
 import { SortableCard } from '../SortableCard';
-
 import {
   AddCardButton,
   CardsContainer,
@@ -39,16 +38,13 @@ export const Column: React.FC<ColumnProps> = ({
   isActive = false,
   isMultiSelectMode = false,
   selectedCards = new Set(),
-  onToggleCardSelection
+  onToggleCardSelection,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
-
+ 
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
-    data: {
-      type: 'column',
-    },
   });
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -59,7 +55,6 @@ export const Column: React.FC<ColumnProps> = ({
     if (title.trim()) {
       onUpdateColumnTitle(column.id, title.trim());
     }
-
     setIsEditing(false);
   };
 
@@ -75,11 +70,7 @@ export const Column: React.FC<ColumnProps> = ({
   const isEmpty = cards.length === 0;
 
   return (
-    <ColumnContainer 
-      ref={setNodeRef}
-      $isActive={isActive} 
-      $isOver={isOver && isEmpty}
-    >
+    <ColumnContainer $isActive={isActive}>
       <ColumnHeader>
         {isEditing ? (
           <ColumnTitleInput
@@ -101,10 +92,10 @@ export const Column: React.FC<ColumnProps> = ({
         )}
       </ColumnHeader>
 
-      <CardsContainer>
+      <CardsContainer ref={setNodeRef}>
         {isEmpty ? (
           <EmptyColumnDropZone $isOver={isOver}>
-            {isOver ? 'Отпустите чтобы добавить' : 'Перетащите карточку сюда'}
+            {isOver ? 'Отпустите чтобы переместить' : 'Перетащите карточку сюда'}
           </EmptyColumnDropZone>
         ) : (
           <SortableContext items={cards.map(card => card.id)} strategy={verticalListSortingStrategy}>
