@@ -1,14 +1,32 @@
 // Board.tsx
 import React, { useState, useCallback } from 'react';
+import {
+  DndContext,
+  DragOverlay,
+  closestCorners,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+  DragOverEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import { Column } from '../Column';
 import { CardModal } from '@components/Modal';
 import type { Card as CardType, Column as ColumnType } from '../../types';
 
 export const Board: React.FC = () => {
   const [columns, setColumns] = useState<ColumnType[]>([
-    { id: 'col1', title: 'To Do', cardIds: [] , order: 1},
-    { id: 'col2', title: 'In Progress', cardIds: [] , order: 2},
-    { id: 'col3', title: 'Done', cardIds: [] , order: 3 }
+    { id: 'col1', title: 'To Do', cardIds: [], order: 1 },
+    { id: 'col2', title: 'In Progress', cardIds: [], order: 2 },
+    { id: 'col3', title: 'Done', cardIds: [], order: 3 }
   ]);
 
   const [cards, setCards] = useState<CardType[]>([
@@ -58,7 +76,7 @@ export const Board: React.FC = () => {
     }
   ]);
 
-  const [draggedCard, setDraggedCard] = useState<{id: string, columnId: string} | null>(null);
+  const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [modalState, setModalState] = useState<{
@@ -71,6 +89,18 @@ export const Board: React.FC = () => {
     card: null,
     mode: 'view'
   });
+
+  // Настройка сенсоров для drag and drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Обработчики модального окна
   const handleCardClick = useCallback((card: CardType) => {
@@ -104,7 +134,6 @@ export const Board: React.FC = () => {
 
   const handleSaveCard = useCallback((cardData: Omit<CardType, 'id' | 'columnId' | 'createdAt' | 'updatedAt'>) => {
     if (modalState.mode === 'create' && modalState.columnId) {
-      // Создание новой карточки
       const newCard: CardType = {
         ...cardData,
         id: `card${Date.now()}`,
@@ -114,7 +143,6 @@ export const Board: React.FC = () => {
       };
       setCards(prev => [...prev, newCard]);
     } else if (modalState.card) {
-      // Редактирование существующей карточки
       setCards(prev => prev.map(card => 
         card.id === modalState.card!.id 
           ? {
@@ -146,67 +174,85 @@ export const Board: React.FC = () => {
     });
   }, []);
 
-  // Обработчики перетаскивания
-  const handleDragStart = useCallback((cardId: string, columnId: string) => {
-    setDraggedCard({ id: cardId, columnId });
-    console.log(`Начало перетаскивания карточки: ${cardId} из колонки: ${columnId}`);
-  }, []);
-
-  const handleDragEnd = useCallback(() => {
-    console.log('Завершение перетаскивания');
-    setDraggedCard(null);
-  }, []);
-
-  const handleDrop = useCallback((targetCardId: string, targetColumnId: string) => {
-    console.log(`DROP: Перетаскиваемая ${draggedCard?.id} → Целевая ${targetCardId} в колонке ${targetColumnId}`);
+  // Обработчики DnD
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const cardId = active.id as string;
+    const card = cards.find(c => c.id === cardId);
     
-    if (!draggedCard) return;
+    if (card) {
+      setActiveCard(card);
+    }
+  }, [cards]);
 
-    setCards(prevCards => {
-      const newCards = [...prevCards];
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event;
+    
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Находим активную карточку
+    const activeCard = cards.find(c => c.id === activeId);
+    if (!activeCard) return;
+
+    // Если перетаскиваем над другой карточкой
+    const overCard = cards.find(c => c.id === overId);
+    if (overCard) {
+      const overColumnId = overCard.columnId;
       
-      // Находим индексы карточек
-      const draggedIndex = newCards.findIndex(card => card.id === draggedCard.id);
-      const targetIndex = newCards.findIndex(card => card.id === targetCardId);
-      
-      if (draggedIndex === -1 || targetIndex === -1) return prevCards;
-
-      const draggedCardData = newCards[draggedIndex];
-      const targetCardData = newCards[targetIndex];
-
-      // Если карточки в разных колонках - просто меняем колонку у перетаскиваемой
-      if (draggedCardData.columnId !== targetCardData.columnId) {
-        newCards[draggedIndex] = {
-          ...draggedCardData,
-          columnId: targetCardData.columnId,
-          updatedAt: new Date().toISOString()
-        };
-      } else {
-        // Если в одной колонке - меняем местами
-        [newCards[draggedIndex], newCards[targetIndex]] = [newCards[targetIndex], newCards[draggedIndex]];
+      if (activeCard.columnId !== overColumnId) {
+        setCards(items => 
+          items.map(item => 
+            item.id === activeId 
+              ? { ...item, columnId: overColumnId, updatedAt: new Date().toISOString() }
+              : item
+          )
+        );
       }
-      
-      return newCards;
-    });
-  }, [draggedCard]);
+    } 
+    // Если перетаскиваем над колонкой
+    else if (columns.some(col => col.id === overId)) {
+      setCards(items => 
+        items.map(item => 
+          item.id === activeId 
+            ? { ...item, columnId: overId, updatedAt: new Date().toISOString() }
+            : item
+        )
+      );
+    }
+  }, [cards, columns]);
 
-  const handleDropToEmpty = useCallback((targetColumnId: string) => {
-    console.log(`DROP TO EMPTY: Карточка ${draggedCard?.id} → Колонка ${targetColumnId}`);
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
     
-    if (!draggedCard) return;
+    setActiveCard(null);
 
-    setCards(prevCards => 
-      prevCards.map(card => 
-        card.id === draggedCard.id 
-          ? { 
-              ...card, 
-              columnId: targetColumnId,
-              updatedAt: new Date().toISOString()
-            }
-          : card
-      )
-    );
-  }, [draggedCard]);
+    if (!over) return;
+
+    const activeId = active.id as string;
+    const overId = over.id as string;
+
+    // Если карточка была перемещена в другую карточку (меняем порядок)
+    if (activeId !== overId) {
+      const activeCard = cards.find(c => c.id === activeId);
+      const overCard = cards.find(c => c.id === overId);
+      
+      if (activeCard && overCard && activeCard.columnId === overCard.columnId) {
+        const columnCards = cards.filter(c => c.columnId === activeCard.columnId);
+        const oldIndex = columnCards.findIndex(c => c.id === activeId);
+        const newIndex = columnCards.findIndex(c => c.id === overId);
+
+        if (oldIndex !== newIndex) {
+          const newCardOrder = arrayMove(columnCards, oldIndex, newIndex);
+          const otherCards = cards.filter(c => c.columnId !== activeCard.columnId);
+          
+          setCards([...otherCards, ...newCardOrder]);
+        }
+      }
+    }
+  }, [cards]);
 
   // Остальные обработчики
   const handleUpdateColumnTitle = useCallback((columnId: string, newTitle: string) => {
@@ -260,12 +306,6 @@ export const Board: React.FC = () => {
     ));
     setSelectedCards(new Set());
   }, [selectedCards]);
-
-  // Обновляем cardIds в колонках на основе текущих карточек
-  const columnsWithCardIds = columns.map(column => ({
-    ...column,
-    cardIds: cards.filter(card => card.columnId === column.id).map(card => card.id)
-  }));
 
   // Получаем название колонки для модального окна
   const getColumnTitle = (columnId: string) => {
@@ -345,76 +385,87 @@ export const Board: React.FC = () => {
         )}
       </div>
 
-      {/* Панель отладки перетаскивания */}
-      <div style={{
-        position: 'fixed',
-        top: '10px',
-        right: '10px',
-        background: 'rgba(0,0,0,0.8)',
-        color: 'white',
-        padding: '10px',
-        borderRadius: '5px',
-        fontSize: '12px',
-        zIndex: 1000,
-        maxWidth: '300px'
-      }}>
-        <div><strong>Отладка перетаскивания:</strong></div>
-        <div>Перетаскиваемая: {draggedCard?.id || 'нет'}</div>
-        <div>Из колонки: {draggedCard?.columnId || 'нет'}</div>
-        <div>Режим выбора: {isMultiSelectMode ? 'ВКЛ' : 'ВЫКЛ'}</div>
-        <div>Выбрано карточек: {selectedCards.size}</div>
-      </div>
-
-      {/* Колонки */}
-      <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' }}>
-        {columnsWithCardIds.map(column => (
-          <Column
-            key={column.id}
-            column={column}
-            cards={cards.filter(card => card.columnId === column.id)}
-            onAddCard={handleAddCard}
-            onUpdateColumnTitle={handleUpdateColumnTitle}
-            onDeleteColumn={handleDeleteColumn}
-            onCardClick={handleCardClick}
-            isMultiSelectMode={isMultiSelectMode}
-            selectedCards={selectedCards}
-            onToggleCardSelection={handleToggleCardSelection}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDrop={handleDrop}
-            onDropToEmpty={handleDropToEmpty}
-            draggedCard={draggedCard}
-          />
-        ))}
-        
-        {/* Кнопка добавления новой колонки */}
-        <div style={{ minWidth: '280px' }}>
-          <button
-            onClick={() => {
-              const newColumn: ColumnType = {
-                id: `col${Date.now()}`,
-                title: 'Новая колонка',
-                cardIds: [],
-                order: columns.length+1
-              };
-              setColumns(prev => [...prev, newColumn]);
-            }}
-            style={{
-              width: '100%',
-              padding: '16px',
-              backgroundColor: '#f0f0f0',
-              border: '2px dashed #d9d9d9',
-              borderRadius: '8px',
-              color: '#666',
-              cursor: 'pointer',
-              fontSize: '14px',
-              textAlign: 'center'
-            }}
-          >
-            + Добавить колонку
-          </button>
+      {/* DnD контекст */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        {/* Колонки */}
+        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' }}>
+          {columns.map(column => {
+            const columnCards = cards.filter(card => card.columnId === column.id);
+            return (
+              <Column
+                key={column.id}
+                column={column}
+                cards={columnCards}
+                onAddCard={handleAddCard}
+                onUpdateColumnTitle={handleUpdateColumnTitle}
+                onDeleteColumn={handleDeleteColumn}
+                onCardClick={handleCardClick}
+                isMultiSelectMode={isMultiSelectMode}
+                selectedCards={selectedCards}
+                onToggleCardSelection={handleToggleCardSelection}
+              />
+            );
+          })}
+          
+          {/* Кнопка добавления новой колонки */}
+          <div style={{ minWidth: '280px' }}>
+            <button
+              onClick={() => {
+                const newColumn: ColumnType = {
+                  id: `col${Date.now()}`,
+                  title: 'Новая колонка',
+                  cardIds: [],
+                  order: columns.length + 1
+                };
+                setColumns(prev => [...prev, newColumn]);
+              }}
+              style={{
+                width: '100%',
+                padding: '16px',
+                backgroundColor: '#f0f0f0',
+                border: '2px dashed #d9d9d9',
+                borderRadius: '8px',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '14px',
+                textAlign: 'center'
+              }}
+            >
+              + Добавить колонку
+            </button>
+          </div>
         </div>
-      </div>
+
+        {/* Drag Overlay для визуального отображения перетаскиваемой карточки */}
+        <DragOverlay>
+          {activeCard ? (
+            <div style={{
+              opacity: 0.8,
+              transform: 'rotate(5deg)',
+              backgroundColor: 'white',
+              border: '2px solid #1890ff',
+              borderRadius: '8px',
+              padding: '12px',
+              boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+              cursor: 'grabbing',
+              maxWidth: '280px'
+            }}>
+              <strong>{activeCard.title}</strong>
+              {activeCard.description && (
+                <p style={{ margin: '8px 0 0 0', fontSize: '12px', color: '#666' }}>
+                  {activeCard.description}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
 
       {/* Модальное окно карточки */}
       <CardModal

@@ -1,7 +1,9 @@
 // Column.tsx
 import React, { useState } from 'react';
+import { useDroppable } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import type { Card as CardType, Column as ColumnType } from '../../types';
-import { Card } from '../Card';
+import { SortableCard } from '../SortableCard';
 import {
   AddCardButton,
   CardsContainer,
@@ -24,11 +26,6 @@ interface ColumnProps {
   isMultiSelectMode?: boolean;
   selectedCards?: Set<string>;
   onToggleCardSelection?: (cardId: string) => void;
-  onDragStart: (cardId: string, columnId: string) => void;
-  onDragEnd: () => void;
-  onDrop: (targetCardId: string, targetColumnId: string) => void;
-  onDropToEmpty: (targetColumnId: string) => void;
-  draggedCard: {id: string, columnId: string} | null;
 }
 
 export const Column: React.FC<ColumnProps> = ({
@@ -42,16 +39,14 @@ export const Column: React.FC<ColumnProps> = ({
   isMultiSelectMode = false,
   selectedCards = new Set(),
   onToggleCardSelection,
-  onDragStart,
-  onDragEnd,
-  onDrop,
-  onDropToEmpty,
-  draggedCard
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
-  const [dragOverCardId, setDragOverCardId] = useState<string | null>(null);
-  const [isColumnDragOver, setIsColumnDragOver] = useState(false);
+
+  // Настройка droppable зоны для колонки
+  const { setNodeRef, isOver } = useDroppable({
+    id: column.id,
+  });
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTitle(e.target.value);
@@ -71,77 +66,6 @@ export const Column: React.FC<ColumnProps> = ({
       setTitle(column.title);
       setIsEditing(false);
     }
-  };
-
-  // Обработчики перетаскивания для карточек
-  const handleCardDragStart = (e: React.DragEvent, card: CardType) => {
-    e.dataTransfer.setData('text/plain', card.id);
-    e.dataTransfer.setData('application/json', JSON.stringify({
-      cardId: card.id,
-      columnId: column.id
-    }));
-    onDragStart(card.id, column.id);
-  };
-
-  const handleCardDragOver = (e: React.DragEvent, card: CardType) => {
-    e.preventDefault();
-    if (draggedCard && draggedCard.id !== card.id) {
-      setDragOverCardId(card.id);
-    }
-  };
-
-  const handleCardDragLeave = (e: React.DragEvent) => {
-    setDragOverCardId(null);
-  };
-
-  const handleCardDrop = (e: React.DragEvent, card: CardType) => {
-    e.preventDefault();
-    setDragOverCardId(null);
-    
-    const draggedCardData = e.dataTransfer.getData('application/json');
-    if (draggedCardData) {
-      try {
-        const { cardId: draggedCardId } = JSON.parse(draggedCardData);
-        if (draggedCardId && draggedCardId !== card.id) {
-          onDrop(card.id, column.id);
-        }
-      } catch (error) {
-        console.error('Error parsing drag data:', error);
-      }
-    }
-  };
-
-  // Обработчики для пустой зоны колонки
-  const handleEmptyZoneDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsColumnDragOver(true);
-  };
-
-  const handleEmptyZoneDragLeave = (e: React.DragEvent) => {
-    setIsColumnDragOver(false);
-  };
-
-  const handleEmptyZoneDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsColumnDragOver(false);
-    
-    const draggedCardData = e.dataTransfer.getData('application/json');
-    if (draggedCardData) {
-      try {
-        const { cardId: draggedCardId } = JSON.parse(draggedCardData);
-        if (draggedCardId) {
-          onDropToEmpty(column.id);
-        }
-      } catch (error) {
-        console.error('Error parsing drag data:', error);
-      }
-    }
-  };
-
-  const handleCardDragEnd = (e: React.DragEvent) => {
-    setDragOverCardId(null);
-    setIsColumnDragOver(false);
-    onDragEnd();
   };
 
   const isEmpty = cards.length === 0;
@@ -169,45 +93,24 @@ export const Column: React.FC<ColumnProps> = ({
         )}
       </ColumnHeader>
 
-      <CardsContainer>
+      <CardsContainer ref={setNodeRef}>
         {isEmpty ? (
-          <EmptyColumnDropZone 
-            $isOver={isColumnDragOver}
-            onDragOver={handleEmptyZoneDragOver}
-            onDragLeave={handleEmptyZoneDragLeave}
-            onDrop={handleEmptyZoneDrop}
-          >
-            {isColumnDragOver ? 'Отпустите чтобы переместить' : 'Перетащите карточку сюда'}
+          <EmptyColumnDropZone $isOver={isOver}>
+            {isOver ? 'Отпустите чтобы переместить' : 'Перетащите карточку сюда'}
           </EmptyColumnDropZone>
         ) : (
-          cards.map((card) => (
-            <div
-              key={card.id}
-              draggable
-              onDragStart={(e) => handleCardDragStart(e, card)}
-              onDragEnd={handleCardDragEnd}
-              onDragOver={(e) => handleCardDragOver(e, card)}
-              onDragLeave={handleCardDragLeave}
-              onDrop={(e) => handleCardDrop(e, card)}
-              style={{
-                // Убрана прозрачность для перетаскиваемой карточки
-                transform: dragOverCardId === card.id ? 'translateY(2px)' : 'none',
-                border: dragOverCardId === card.id ? '2px dashed #007bff' : 'none',
-                borderRadius: '8px',
-                marginBottom: '8px',
-                transition: 'all 0.2s ease',
-                cursor: 'grab'
-              }}
-            >
-              <Card 
-                card={card} 
+          <SortableContext items={cards.map(card => card.id)} strategy={verticalListSortingStrategy}>
+            {cards.map((card) => (
+              <SortableCard
+                key={card.id}
+                card={card}
                 onClick={() => onCardClick(card)}
                 isMultiSelectMode={isMultiSelectMode}
                 isSelected={selectedCards.has(card.id)}
                 onToggleSelection={onToggleCardSelection}
               />
-            </div>
-          ))
+            ))}
+          </SortableContext>
         )}
       </CardsContainer>
 
