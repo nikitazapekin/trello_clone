@@ -1,16 +1,4 @@
-export interface Card {
-  id: string;
-  title: string;
-  description: string;
-  columnId: string;
-  labels: string[];
-  checklists: Checklist[];
-  images: Image[];
-  createdAt: string;
-  updatedAt: string;
-}
  
-
 export interface Image {
   id: string;
   url: string;
@@ -37,27 +25,40 @@ export interface Column {
     order: number;
 }
  
+export interface CardHistory {
+  id: string;
+  action: string;
+  details: string;
+  timestamp: string;
+}
+
+export interface Card {
+  id: string;
+  title: string;
+  description: string;
+  columnId: string;
+  labels: string[];
+  checklists: Checklist[];
+  images: Image[];
+  history: CardHistory[]; 
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface BoardData {
   columns: Column[];
   cards: Card[];
-  history: CardHistory[];
+  history: CardHistory[]; 
 }
-
-export interface CardHistory {
-  id: string;
-  cardId: string;
-  action: string;
-  timestamp: string;
-  changes: HistoryChange[];
-}
-
+ 
+ 
 export interface HistoryChange {
   field: string;
-  oldValue: string | null | Card;
-  newValue: string | null | Card;
+  oldValue: string;
+  newValue: string;
 }
 
-// Типы для действий с историей
+
 export type HistoryAction = 
   | 'Создание карточки'
   | 'Изменение карточки'
@@ -81,5 +82,7 @@ export interface CardImage {
   url: string;
   name: string;
 }
+
+ 
 
  
