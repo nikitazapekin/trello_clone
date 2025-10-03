@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { Card, CardHistory, Checklist,  Image } from '../../types';
+import type { Card, CardHistory, Checklist, Image } from '../../types';
 import ModalUtils from '../../helpers/ModalUtils';
 import {
   Button,
@@ -32,12 +32,12 @@ import {
   ModalOverlay,
   TextArea
 } from './styled';
- 
 
 interface CardModalProps {
   card: Card | null;
   isOpen: boolean;
   onSave: (card: Omit<Card, 'id' | 'columnId' | 'createdAt' | 'updatedAt'>) => void;
+  onUpdate: (cardId: string, updates: Partial<Card>) => void;  
   onClose: () => void;
   onDelete: (cardId: string) => void;
   mode: 'create' | 'edit' | 'view';
@@ -46,11 +46,11 @@ interface CardModalProps {
   onEdit: () => void;
 }
 
-
 export const CardModal: React.FC<CardModalProps> = ({
   card,
   isOpen,
   onSave,
+  onUpdate,  
   onClose,
   onDelete,
   mode,
@@ -68,7 +68,7 @@ export const CardModal: React.FC<CardModalProps> = ({
   const [activeTab, setActiveTab] = useState('main');
   const [selectedImage, setSelectedImage] = useState<Image | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+ 
   useEffect(() => {
     if (card) {
       setTitle(card.title);
@@ -87,11 +87,31 @@ export const CardModal: React.FC<CardModalProps> = ({
     setActiveTab('main');
     setSelectedImage(null);
   }, [card, isOpen]);
-
-  const handleSave = () => {
-    ModalUtils.handleSave(title, description, labels, checklists, images, onSave);
-  };
-
+const handleSave = () => {
+  if (mode === 'create') {
+ 
+    onSave({
+      title: title.trim(),
+      description: description.trim(),
+      labels: labels || [],
+      checklists: checklists || [],
+      images: images || [],
+      history: []  
+    });
+  } else if (mode === 'edit' && card) {
+   
+    const updatedCard = {
+      title: title.trim(),
+      description: description.trim(),
+      labels: labels || [],
+      checklists: checklists || [],
+      images: images || [],
+      history: card.history || [], 
+    };
+    onUpdate(card.id, updatedCard);
+  }
+  onClose();
+};
   const handleAddLabel = () => {
     ModalUtils.handleAddLabel(newLabel, labels, setLabels, setNewLabel);
   };
@@ -396,26 +416,24 @@ export const CardModal: React.FC<CardModalProps> = ({
                 )}
               </TabPanel>
 
-              <TabPanel $isActive={activeTab === 'history'}>
-                <HistoryList>
-                  {history.map(record => (
-                    <HistoryItem key={record.id}>
-                      <div>
-                        <strong>{record.action}</strong>
-                        {record.changes.map((change, index) => (
-                          <div key={index} style={{ fontSize: '12px', color: '#666' }}>
-                            {change.field}: {String(change.oldValue)} → {String(change.newValue)}
-                          </div>
-                        ))}
-                      </div>
-                      <HistoryTime>
-                        {new Date(record.timestamp).toLocaleString()}
-                      </HistoryTime>
-                    </HistoryItem>
-                  ))}
-                  {history.length === 0 && <p>История изменений отсутствует</p>}
-                </HistoryList>
-              </TabPanel>
+            <TabPanel $isActive={activeTab === 'history'}>
+  <HistoryList>
+    {history.map(record => (
+      <HistoryItem key={record.id}>
+        <div>
+          <strong>{record.action}</strong>
+          <div style={{ fontSize: '14px', color: '#666', marginTop: '4px' }}>
+            {record.details}
+          </div>
+        </div>
+        <HistoryTime>
+          {new Date(record.timestamp).toLocaleString()}
+        </HistoryTime>
+      </HistoryItem>
+    ))}
+    {history.length === 0 && <p>История изменений отсутствует</p>}
+  </HistoryList>
+</TabPanel>
             </Tabs>
           </>
         )}

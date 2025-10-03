@@ -1,5 +1,5 @@
- import React from 'react';
-import type { Card,  Checklist, ChecklistItem, Image } from '../types/';
+import React from 'react';
+import type { Card,  Checklist, ChecklistItem, Image, CardHistory } from '../types/';
  
 class ModalUtils {
   static generateId(): string {
@@ -12,6 +12,7 @@ class ModalUtils {
     labels: string[],
     checklists: Checklist[],
     images: Image[],
+    history: CardHistory[],  
     onSave: (card: Omit<Card, 'id' | 'columnId' | 'createdAt' | 'updatedAt'>) => void
   ): void {
     if (title.trim()) {
@@ -20,7 +21,8 @@ class ModalUtils {
         description: description.trim(),
         labels: labels || [],
         checklists: checklists || [],
-        images: images || []
+        images: images || [],
+        history: history || [] 
       });
     }
   }
@@ -206,5 +208,4 @@ class ModalUtils {
   }
 }
 
-
-export default ModalUtils
+export default ModalUtils;

@@ -11,7 +11,7 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Column } from '../Column';
 import { CardModal } from '@components/Modal';
-import type { Card as CardType, Column as ColumnType, BoardData } from '../../types';
+import type { Card as CardType, Column as ColumnType, BoardData, CardHistory } from '../../types';
 import { defaultColumns } from './constants';
 import { createDragHandlers } from '../../helpers/DragUtils';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
@@ -40,8 +40,7 @@ export const Board: React.FC = () => {
     card: null,
     mode: 'view'
   });
-
-  // Сохраняем данные в localStorage только при реальных изменениях
+ 
   useEffect(() => {
     const hasChanges = 
       JSON.stringify(columns) !== JSON.stringify(savedBoardData.columns) ||
@@ -51,10 +50,10 @@ export const Board: React.FC = () => {
       setSavedBoardData({
         columns,
         cards,
-        history: savedBoardData.history // сохраняем историю
+        history: []  
       });
     }
-  }, [columns, cards, savedBoardData, setSavedBoardData]);
+  }, [columns, cards]);  
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -103,29 +102,107 @@ export const Board: React.FC = () => {
     }
   }, [modalState.card]);
 
-  const handleSaveCard = useCallback((cardData: Omit<CardType, 'id' | 'columnId' | 'createdAt' | 'updatedAt'>) => {
+  const handleUpdateCard = useCallback((cardId: string, updates: Partial<CardType>) => {
+    setCards(prev => prev.map(card => {
+      if (card.id === cardId) {
+        const oldCard = { ...card };
+        const newCard = { 
+          ...card, 
+          ...updates, 
+          updatedAt: new Date().toISOString() 
+        };
+ 
+        const changes: string[] = [];
+
+        if (oldCard.title !== newCard.title) {
+          changes.push(`Название: "${oldCard.title}" → "${newCard.title}"`);
+        }
+
+        if (oldCard.description !== newCard.description) {
+          if (!oldCard.description && newCard.description) {
+            changes.push('Добавлено описание');
+          } else if (oldCard.description && !newCard.description) {
+            changes.push('Удалено описание');
+          } else {
+            changes.push('Изменено описание');
+          }
+        }
+
+        if (JSON.stringify(oldCard.labels) !== JSON.stringify(newCard.labels)) {
+          const oldLabels = oldCard.labels.join(', ') || 'нет';
+          const newLabels = newCard.labels.join(', ') || 'нет';
+          changes.push(`Метки: ${oldLabels} → ${newLabels}`);
+        }
+
+        if (JSON.stringify(oldCard.checklists) !== JSON.stringify(newCard.checklists)) {
+          const oldCount = oldCard.checklists.length;
+          const newCount = newCard.checklists.length;
+          if (newCount > oldCount) {
+            changes.push(`Добавлен чек-лист: "${newCard.checklists[newCount - 1].title}"`);
+          } else if (newCount < oldCount) {
+            changes.push('Удален чек-лист');
+          } else {
+            changes.push('Изменены чек-листы');
+          }
+        }
+
+        if (JSON.stringify(oldCard.images) !== JSON.stringify(newCard.images)) {
+          const oldCount = oldCard.images.length;
+          const newCount = newCard.images.length;
+          if (newCount > oldCount) {
+            changes.push(`Добавлено изображение: "${newCard.images[newCount - 1].name}"`);
+          } else if (newCount < oldCount) {
+            changes.push('Удалено изображение');
+          } else {
+            changes.push('Изменены изображения');
+          }
+        }
+ 
+        if (changes.length > 0) {
+          const historyEntry: CardHistory = {
+            id: `history-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            action: 'Изменение карточки',
+            details: changes.join('; '),
+            timestamp: new Date().toISOString()
+          };
+
+          return {
+            ...newCard,
+            history: [...(oldCard.history || []), historyEntry]
+          };
+        }
+
+        return newCard;
+      }
+      return card;
+    }));
+  }, []);
+
+  const handleSaveCard = useCallback((cardData: Omit<CardType, 'id' | 'columnId' | 'createdAt' | 'updatedAt' | 'history'>) => {
     if (modalState.mode === 'create' && modalState.columnId) {
       const newCard: CardType = {
         ...cardData,
         id: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         columnId: modalState.columnId,
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
+        history: [{
+          id: `history-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          action: 'Создание карточки',
+          details: `Карточка "${cardData.title}" создана`,
+          timestamp: new Date().toISOString()
+        }]
       };
       setCards(prev => [...prev, newCard]);
-    } else if (modalState.card) {
-      setCards(prev => prev.map(card => 
-        card.id === modalState.card!.id 
-          ? {
-              ...card,
-              ...cardData,
-              updatedAt: new Date().toISOString()
-            }
-          : card
-      ));
+    } else if (modalState.card && modalState.mode === 'edit') {
+   
+      handleUpdateCard(modalState.card.id, {
+        ...cardData,
+        updatedAt: new Date().toISOString()
+      });
     }
     setModalState({ isOpen: false, card: null, mode: 'view' });
-  }, [modalState]);
+  }, [modalState, handleUpdateCard]);
 
   const handleDeleteCard = useCallback((cardId: string) => {
     setCards(prev => prev.filter(card => card.id !== cardId));
@@ -146,9 +223,12 @@ export const Board: React.FC = () => {
   }, []);
 
   const handleUpdateColumnTitle = useCallback((columnId: string, newTitle: string) => {
-    setColumns(prev => prev.map(col => 
-      col.id === columnId ? { ...col, title: newTitle } : col
-    ));
+    setColumns(prev => prev.map(col => {
+      if (col.id === columnId) {
+        return { ...col, title: newTitle };
+      }
+      return col;
+    }));
   }, []);
 
   const handleDeleteColumn = useCallback((columnId: string) => {
@@ -185,21 +265,41 @@ export const Board: React.FC = () => {
   }, [selectedCards]);
 
   const handleMoveSelectedCards = useCallback((targetColumnId: string) => {
-    setCards(prev => prev.map(card => 
-      selectedCards.has(card.id) 
-        ? { 
-            ...card, 
-            columnId: targetColumnId,
-            updatedAt: new Date().toISOString()
-          }
-        : card
-    ));
+    const targetColumn = columns.find(col => col.id === targetColumnId);
+    
+    setCards(prev => prev.map(card => {
+      if (selectedCards.has(card.id) && card.columnId !== targetColumnId) {
+        const oldColumn = columns.find(col => col.id === card.columnId);
+        
+        // Добавляем запись в историю о перемещении
+        const moveHistory: CardHistory = {
+          id: `history-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          action: 'Перемещение карточки',
+          details: `Перемещена из "${oldColumn?.title || 'Неизвестная колонка'}" в "${targetColumn?.title || 'Неизвестная колонка'}"`,
+          timestamp: new Date().toISOString()
+        };
+
+        return { 
+          ...card, 
+          columnId: targetColumnId,
+          updatedAt: new Date().toISOString(),
+          history: [...(card.history || []), moveHistory]
+        };
+      }
+      return card;
+    }));
     setSelectedCards(new Set());
-  }, [selectedCards]);
+  }, [selectedCards, columns]);
 
   const getColumnTitle = (columnId: string) => {
     return columns.find(col => col.id === columnId)?.title || '';
   };
+
+  const getCardHistory = useCallback((cardId?: string) => {
+    if (!cardId) return [];
+    const card = cards.find(c => c.id === cardId);
+    return card?.history || [];
+  }, [cards]);
 
   return (
     <div style={{ padding: '20px', width: "100%" }}>
@@ -283,9 +383,7 @@ export const Board: React.FC = () => {
         onDragEnd={handleDragEnd}
       
       >
-  <CardsWrapper>
-
-     {/*    <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' ,      background: "red"  }}> */}
+        <CardsWrapper>
           {columns.map(column => {
             const columnCards = cards.filter(card => card.columnId === column.id);
             return (
@@ -330,9 +428,8 @@ export const Board: React.FC = () => {
               + Добавить колонку
             </button>
           </div>
-            </CardsWrapper>
+        </CardsWrapper>
         
-
         <DragOverlay>
           {activeCard ? (
             <div style={{
@@ -361,14 +458,15 @@ export const Board: React.FC = () => {
         card={modalState.card}
         isOpen={modalState.isOpen}
         onSave={handleSaveCard}
+        onUpdate={handleUpdateCard}
         onClose={handleCloseModal}
         onDelete={handleDeleteCard}
         mode={modalState.mode}
         columnTitle={modalState.card ? getColumnTitle(modalState.card.columnId) : 
                     modalState.columnId ? getColumnTitle(modalState.columnId) : undefined}
+        history={getCardHistory(modalState.card?.id)}
         onEdit={handleEditCard}
       />
-
     </div>
   );
 };
