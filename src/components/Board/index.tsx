@@ -14,9 +14,9 @@ import {
 } from '@dnd-kit/core';
 import {
   arrayMove,
-  SortableContext,
+ 
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  
 } from '@dnd-kit/sortable';
 import { Column } from '../Column';
 import { CardModal } from '@components/Modal';
