@@ -1,17 +1,6 @@
  import React from 'react';
 import type { Card, CardHistory, Checklist, ChecklistItem, Image } from '../types/';
-interface CardModalProps {
-  card: Card | null;
-  isOpen: boolean;
-  onSave: (card: Omit<Card, 'id' | 'columnId' | 'createdAt' | 'updatedAt'>) => void;
-  onClose: () => void;
-  onDelete: (cardId: string) => void;
-  mode: 'create' | 'edit' | 'view';
-  columnTitle?: string;
-  history?: CardHistory[];
-  onEdit: () => void;
-}
-
+ 
 class ModalUtils {
   static generateId(): string {
     return `id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
