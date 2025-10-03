@@ -164,7 +164,16 @@ export const CardImagePreview = styled.div`
   border-radius: 6px 6px 0 0;
   overflow: hidden;
   max-height: 100px;
-  
+  max-width: 200px;
+margin: 0 auto;
+margin-bottom: 10px;
+    @media screen and (max-width: 1240px) {
+ max-width: 100%;
+  width: 100%;
+ 
+  }
+ 
+
   img {
     width: 100%;
     height: 100%;
