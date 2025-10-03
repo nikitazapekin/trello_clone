@@ -1,5 +1,5 @@
  import React from 'react';
-import type { Card, CardHistory, Checklist, ChecklistItem, Image } from '../types/';
+import type { Card,  Checklist, ChecklistItem, Image } from '../types/';
  
 class ModalUtils {
   static generateId(): string {
