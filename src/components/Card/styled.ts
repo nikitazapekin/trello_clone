@@ -16,8 +16,8 @@ export const CardContainer = styled.div<CardContainerProps>`
   transition: all 0.2s;
   margin-bottom: 8px;
   position: relative;
-  touch-action: none; /* Важно для touch-событий */
-  user-select: none; /* Предотвращает выделение текста на мобильных */
+  touch-action: none; 
+  user-select: none; 
 
   &:active {
     cursor: grabbing;
@@ -43,8 +43,7 @@ export const CardContainer = styled.div<CardContainerProps>`
   ${props => props.$isMultiSelectMode && `
     padding-left: 36px;
   `}
-
-  /* Улучшения для мобильных устройств */
+ 
   @media (max-width: 768px) {
     padding: 10px;
     min-height: 60px;
@@ -63,8 +62,7 @@ export const CardCheckbox = styled.input`
   height: 16px;
   cursor: pointer;
   z-index: 2;
-
-  /* Увеличение области нажатия для мобильных */
+ 
   @media (max-width: 768px) {
     width: 20px;
     height: 20px;

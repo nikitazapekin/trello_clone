@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -11,13 +11,21 @@ import {
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Column } from '../Column';
 import { CardModal } from '@components/Modal';
-import type { Card as CardType, Column as ColumnType } from '../../types';
+import type { Card as CardType, Column as ColumnType, BoardData } from '../../types';
 import { defaultColumns } from './constants';
 import { createDragHandlers } from '../../helpers/DragUtils';
+import { useLocalStorage } from '../../hooks/useLocalStorage';
 
 export const Board: React.FC = () => {
-  const [columns, setColumns] = useState<ColumnType[]>(defaultColumns);
-  const [cards, setCards] = useState<CardType[]>([]);
+  // Загружаем данные из localStorage один раз при монтировании
+  const [savedBoardData, setSavedBoardData] = useLocalStorage<BoardData>('board-data', {
+    columns: defaultColumns,
+    cards: [],
+    history: []
+  });
+
+  const [columns, setColumns] = useState<ColumnType[]>(savedBoardData.columns);
+  const [cards, setCards] = useState<CardType[]>(savedBoardData.cards);
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
@@ -31,7 +39,22 @@ export const Board: React.FC = () => {
     card: null,
     mode: 'view'
   });
- 
+
+  // Сохраняем данные в localStorage только при реальных изменениях
+  useEffect(() => {
+    const hasChanges = 
+      JSON.stringify(columns) !== JSON.stringify(savedBoardData.columns) ||
+      JSON.stringify(cards) !== JSON.stringify(savedBoardData.cards);
+
+    if (hasChanges) {
+      setSavedBoardData({
+        columns,
+        cards,
+        history: savedBoardData.history // сохраняем историю
+      });
+    }
+  }, [columns, cards, savedBoardData, setSavedBoardData]);
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -42,14 +65,14 @@ export const Board: React.FC = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
- 
+
   const { handleDragStart, handleDragOver, handleDragEnd } = createDragHandlers(
     cards,
     columns,
     setActiveCard,
     setCards
   );
- 
+
   const handleCardClick = useCallback((card: CardType) => {
     if (isMultiSelectMode) {
       setSelectedCards(prev => {
@@ -83,7 +106,7 @@ export const Board: React.FC = () => {
     if (modalState.mode === 'create' && modalState.columnId) {
       const newCard: CardType = {
         ...cardData,
-        id: `card${Date.now()}`,
+        id: `card-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         columnId: modalState.columnId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -120,7 +143,7 @@ export const Board: React.FC = () => {
       columnId: columnId
     });
   }, []);
- 
+
   const handleUpdateColumnTitle = useCallback((columnId: string, newTitle: string) => {
     setColumns(prev => prev.map(col => 
       col.id === columnId ? { ...col, title: newTitle } : col
@@ -172,7 +195,7 @@ export const Board: React.FC = () => {
     ));
     setSelectedCards(new Set());
   }, [selectedCards]);
- 
+
   const getColumnTitle = (columnId: string) => {
     return columns.find(col => col.id === columnId)?.title || '';
   };
@@ -249,7 +272,7 @@ export const Board: React.FC = () => {
           </>
         )}
       </div>
- 
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -281,7 +304,7 @@ export const Board: React.FC = () => {
             <button
               onClick={() => {
                 const newColumn: ColumnType = {
-                  id: `col${Date.now()}`,
+                  id: `col-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                   title: 'Новая колонка',
                   cardIds: [],
                   order: columns.length + 1
@@ -304,7 +327,7 @@ export const Board: React.FC = () => {
             </button>
           </div>
         </div>
- 
+
         <DragOverlay>
           {activeCard ? (
             <div style={{
@@ -328,7 +351,7 @@ export const Board: React.FC = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
- 
+
       <CardModal
         card={modalState.card}
         isOpen={modalState.isOpen}
@@ -340,8 +363,7 @@ export const Board: React.FC = () => {
                     modalState.columnId ? getColumnTitle(modalState.columnId) : undefined}
         onEdit={handleEditCard}
       />
- 
-    
+
     </div>
   );
 };

@@ -1,4 +1,4 @@
-// Column.tsx
+ 
 import React, { useState } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -42,8 +42,7 @@ export const Column: React.FC<ColumnProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [title, setTitle] = useState(column.title);
-
-  // Настройка droppable зоны для колонки
+ 
   const { setNodeRef, isOver } = useDroppable({
     id: column.id,
   });
