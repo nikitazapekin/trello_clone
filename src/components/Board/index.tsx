@@ -53,7 +53,7 @@ export const Board: React.FC = () => {
         history: []  
       });
     }
-  }, [columns, cards]);  
+  }, [columns, cards, savedBoardData.columns, savedBoardData.cards, setSavedBoardData]);  
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -195,7 +195,6 @@ export const Board: React.FC = () => {
       };
       setCards(prev => [...prev, newCard]);
     } else if (modalState.card && modalState.mode === 'edit') {
-   
       handleUpdateCard(modalState.card.id, {
         ...cardData,
         updatedAt: new Date().toISOString()
@@ -271,7 +270,6 @@ export const Board: React.FC = () => {
       if (selectedCards.has(card.id) && card.columnId !== targetColumnId) {
         const oldColumn = columns.find(col => col.id === card.columnId);
         
-        // Добавляем запись в историю о перемещении
         const moveHistory: CardHistory = {
           id: `history-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           action: 'Перемещение карточки',
@@ -313,7 +311,6 @@ export const Board: React.FC = () => {
         gap: '12px',
         alignItems: 'center',
         flexWrap: 'wrap',
-    
       }}>
         <button
           onClick={handleToggleMultiSelectMode}
@@ -351,7 +348,7 @@ export const Board: React.FC = () => {
               Удалить выбранные
             </button>
 
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' ,  }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '14px', color: '#666' }}>Переместить в:</span>
               {columns.map(column => (
                 <button
@@ -381,7 +378,6 @@ export const Board: React.FC = () => {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-      
       >
         <CardsWrapper>
           {columns.map(column => {
