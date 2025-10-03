@@ -11,6 +11,12 @@ export const ColumnContainer = styled.div<{ $isActive?: boolean; $isOver?: boole
   gap: 12px;
   border: ${props => props.$isOver ? '2px dashed #007bff' : 'none'};
   background-color: ${props => props.$isOver ? '#e6f7ff' : '#f0f0f0'};
+
+  @media screen and (max-width: 1240px) {
+  width: 100%;
+  max-width: 100%;
+
+  }
 `;
 
 export const EmptyColumnDropZone = styled.div<{ $isOver?: boolean }>`

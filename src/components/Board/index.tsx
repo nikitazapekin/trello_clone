@@ -15,6 +15,7 @@ import type { Card as CardType, Column as ColumnType, BoardData } from '../../ty
 import { defaultColumns } from './constants';
 import { createDragHandlers } from '../../helpers/DragUtils';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { CardsWrapper } from './styled';
 
 export const Board: React.FC = () => {
   // Загружаем данные из localStorage один раз при монтировании
@@ -201,7 +202,7 @@ export const Board: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '20px' }}>
+    <div style={{ padding: '20px', width: "100%" }}>
       
       <div style={{
         marginBottom: '20px',
@@ -211,7 +212,8 @@ export const Board: React.FC = () => {
         display: 'flex',
         gap: '12px',
         alignItems: 'center',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+    
       }}>
         <button
           onClick={handleToggleMultiSelectMode}
@@ -249,7 +251,7 @@ export const Board: React.FC = () => {
               Удалить выбранные
             </button>
 
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' ,  }}>
               <span style={{ fontSize: '14px', color: '#666' }}>Переместить в:</span>
               {columns.map(column => (
                 <button
@@ -279,9 +281,11 @@ export const Board: React.FC = () => {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+      
       >
-  
-        <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' }}>
+  <CardsWrapper>
+
+     {/*    <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' ,      background: "red"  }}> */}
           {columns.map(column => {
             const columnCards = cards.filter(card => card.columnId === column.id);
             return (
@@ -326,7 +330,8 @@ export const Board: React.FC = () => {
               + Добавить колонку
             </button>
           </div>
-        </div>
+            </CardsWrapper>
+        
 
         <DragOverlay>
           {activeCard ? (

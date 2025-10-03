@@ -19,6 +19,14 @@ export const CardContainer = styled.div<CardContainerProps>`
   touch-action: none; 
   user-select: none; 
 
+
+   @media screen and (max-width: 1240px) {
+ 
+  width: 100%;
+ 
+  }
+ 
+
   &:active {
     cursor: grabbing;
     transform: rotate(3deg);
