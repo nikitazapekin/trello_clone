@@ -1,4 +1,3 @@
-// Board.tsx
 import React, { useState, useCallback } from 'react';
 import {
   DndContext,
@@ -8,74 +7,17 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
-  DragStartEvent,
-  DragEndEvent,
-  DragOverEvent,
 } from '@dnd-kit/core';
-import {
-  arrayMove,
- 
-  sortableKeyboardCoordinates,
-  
-} from '@dnd-kit/sortable';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { Column } from '../Column';
 import { CardModal } from '@components/Modal';
 import type { Card as CardType, Column as ColumnType } from '../../types';
+import { defaultColumns } from './constants';
+import { createDragHandlers } from '../../helpers/DragUtils';
 
 export const Board: React.FC = () => {
-  const [columns, setColumns] = useState<ColumnType[]>([
-    { id: 'col1', title: 'To Do', cardIds: [], order: 1 },
-    { id: 'col2', title: 'In Progress', cardIds: [], order: 2 },
-    { id: 'col3', title: 'Done', cardIds: [], order: 3 }
-  ]);
-
-  const [cards, setCards] = useState<CardType[]>([
-    { 
-      id: 'card1', 
-      title: 'Задача 1', 
-      description: 'Описание задачи 1',
-      columnId: 'col1',
-      labels: ['важно'],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    { 
-      id: 'card2', 
-      title: 'Задача 2', 
-      description: 'Описание задачи 2',
-      columnId: 'col1',
-      labels: ['срочно'],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    { 
-      id: 'card3', 
-      title: 'Задача 3', 
-      description: 'Описание задачи 3',
-      columnId: 'col2',
-      labels: [],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    },
-    { 
-      id: 'card4', 
-      title: 'Задача 4', 
-      description: 'Описание задачи 4',
-      columnId: 'col3',
-      labels: ['исправлено'],
-      images: [],
-      checklists: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    }
-  ]);
-
+  const [columns, setColumns] = useState<ColumnType[]>(defaultColumns);
+  const [cards, setCards] = useState<CardType[]>([]);
   const [activeCard, setActiveCard] = useState<CardType | null>(null);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState<boolean>(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
@@ -89,8 +31,7 @@ export const Board: React.FC = () => {
     card: null,
     mode: 'view'
   });
-
-  // Настройка сенсоров для drag and drop
+ 
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -101,8 +42,14 @@ export const Board: React.FC = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   );
-
-  // Обработчики модального окна
+ 
+  const { handleDragStart, handleDragOver, handleDragEnd } = createDragHandlers(
+    cards,
+    columns,
+    setActiveCard,
+    setCards
+  );
+ 
   const handleCardClick = useCallback((card: CardType) => {
     if (isMultiSelectMode) {
       setSelectedCards(prev => {
@@ -173,88 +120,7 @@ export const Board: React.FC = () => {
       columnId: columnId
     });
   }, []);
-
-  // Обработчики DnD
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    const cardId = active.id as string;
-    const card = cards.find(c => c.id === cardId);
-    
-    if (card) {
-      setActiveCard(card);
-    }
-  }, [cards]);
-
-  const handleDragOver = useCallback((event: DragOverEvent) => {
-    const { active, over } = event;
-    
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // Находим активную карточку
-    const activeCard = cards.find(c => c.id === activeId);
-    if (!activeCard) return;
-
-    // Если перетаскиваем над другой карточкой
-    const overCard = cards.find(c => c.id === overId);
-    if (overCard) {
-      const overColumnId = overCard.columnId;
-      
-      if (activeCard.columnId !== overColumnId) {
-        setCards(items => 
-          items.map(item => 
-            item.id === activeId 
-              ? { ...item, columnId: overColumnId, updatedAt: new Date().toISOString() }
-              : item
-          )
-        );
-      }
-    } 
-    // Если перетаскиваем над колонкой
-    else if (columns.some(col => col.id === overId)) {
-      setCards(items => 
-        items.map(item => 
-          item.id === activeId 
-            ? { ...item, columnId: overId, updatedAt: new Date().toISOString() }
-            : item
-        )
-      );
-    }
-  }, [cards, columns]);
-
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const { active, over } = event;
-    
-    setActiveCard(null);
-
-    if (!over) return;
-
-    const activeId = active.id as string;
-    const overId = over.id as string;
-
-    // Если карточка была перемещена в другую карточку (меняем порядок)
-    if (activeId !== overId) {
-      const activeCard = cards.find(c => c.id === activeId);
-      const overCard = cards.find(c => c.id === overId);
-      
-      if (activeCard && overCard && activeCard.columnId === overCard.columnId) {
-        const columnCards = cards.filter(c => c.columnId === activeCard.columnId);
-        const oldIndex = columnCards.findIndex(c => c.id === activeId);
-        const newIndex = columnCards.findIndex(c => c.id === overId);
-
-        if (oldIndex !== newIndex) {
-          const newCardOrder = arrayMove(columnCards, oldIndex, newIndex);
-          const otherCards = cards.filter(c => c.columnId !== activeCard.columnId);
-          
-          setCards([...otherCards, ...newCardOrder]);
-        }
-      }
-    }
-  }, [cards]);
-
-  // Остальные обработчики
+ 
   const handleUpdateColumnTitle = useCallback((columnId: string, newTitle: string) => {
     setColumns(prev => prev.map(col => 
       col.id === columnId ? { ...col, title: newTitle } : col
@@ -306,15 +172,14 @@ export const Board: React.FC = () => {
     ));
     setSelectedCards(new Set());
   }, [selectedCards]);
-
-  // Получаем название колонки для модального окна
+ 
   const getColumnTitle = (columnId: string) => {
     return columns.find(col => col.id === columnId)?.title || '';
   };
 
   return (
     <div style={{ padding: '20px' }}>
-      {/* Панель управления */}
+      
       <div style={{
         marginBottom: '20px',
         padding: '16px',
@@ -384,8 +249,7 @@ export const Board: React.FC = () => {
           </>
         )}
       </div>
-
-      {/* DnD контекст */}
+ 
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -393,7 +257,7 @@ export const Board: React.FC = () => {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        {/* Колонки */}
+  
         <div style={{ display: 'flex', gap: '16px', overflowX: 'auto' }}>
           {columns.map(column => {
             const columnCards = cards.filter(card => card.columnId === column.id);
@@ -412,8 +276,7 @@ export const Board: React.FC = () => {
               />
             );
           })}
-          
-          {/* Кнопка добавления новой колонки */}
+           
           <div style={{ minWidth: '280px' }}>
             <button
               onClick={() => {
@@ -441,8 +304,7 @@ export const Board: React.FC = () => {
             </button>
           </div>
         </div>
-
-        {/* Drag Overlay для визуального отображения перетаскиваемой карточки */}
+ 
         <DragOverlay>
           {activeCard ? (
             <div style={{
@@ -466,8 +328,7 @@ export const Board: React.FC = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
-
-      {/* Модальное окно карточки */}
+ 
       <CardModal
         card={modalState.card}
         isOpen={modalState.isOpen}
@@ -479,22 +340,8 @@ export const Board: React.FC = () => {
                     modalState.columnId ? getColumnTitle(modalState.columnId) : undefined}
         onEdit={handleEditCard}
       />
-
-      {/* Статистика */}
-      <div style={{
-        marginTop: '20px',
-        padding: '12px',
-        backgroundColor: '#f9f9f9',
-        borderRadius: '6px',
-        fontSize: '12px',
-        color: '#666'
-      }}>
-        <div>Всего колонок: {columns.length}</div>
-        <div>Всего карточек: {cards.length}</div>
-        <div>Карточек по колонкам: {columns.map(col => 
-          `${col.title}: ${cards.filter(card => card.columnId === col.id).length}`
-        ).join(' | ')}</div>
-      </div>
+ 
+    
     </div>
   );
 };
