@@ -18,7 +18,7 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { CardsWrapper } from './styled';
 
 export const Board: React.FC = () => {
-  // Загружаем данные из localStorage один раз при монтировании
+ 
   const [savedBoardData, setSavedBoardData] = useLocalStorage<BoardData>('board-data', {
     columns: defaultColumns,
     cards: [],

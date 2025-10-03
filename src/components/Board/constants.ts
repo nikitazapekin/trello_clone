@@ -1,4 +1,4 @@
-import type { Card as CardType, Column as ColumnType } from '../../types';
+import type {  Column as ColumnType } from '../../types';
 export const defaultColumns: ColumnType[] = [
     { id: 'col1', title: 'To Do', cardIds: [], order: 1 },
     { id: 'col2', title: 'In Progress', cardIds: [], order: 2 },

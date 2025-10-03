@@ -1,4 +1,4 @@
- 
+ import React from 'react';
 import type { Card, CardHistory, Checklist, ChecklistItem, Image } from '../types/';
 interface CardModalProps {
   card: Card | null;

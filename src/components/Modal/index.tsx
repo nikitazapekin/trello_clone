@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { Card, CardHistory, Checklist, ChecklistItem, Image } from '../../types';
+import type { Card, CardHistory, Checklist,  Image } from '../../types';
 import ModalUtils from '../../helpers/ModalUtils';
 import {
   Button,
@@ -107,11 +107,7 @@ export const CardModal: React.FC<CardModalProps> = ({
   const handleDeleteChecklist = (checklistId: string) => {
     ModalUtils.handleDeleteChecklist(checklistId, setChecklists);
   };
-
-  const handleAddChecklistItem = (checklistId: string, text: string) => {
-    ModalUtils.handleAddChecklistItem(checklistId, text, setChecklists);
-  };
-
+ 
   const handleToggleChecklistItem = (checklistId: string, itemId: string) => {
     ModalUtils.handleToggleChecklistItem(checklistId, itemId, setChecklists);
   };
