@@ -17,7 +17,7 @@ import { createDragHandlers } from '../../helpers/DragUtils';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { CardsWrapper } from './styled';
 
-interface Board {
+interface BoardType {
   id: string;
   name: string;
   createdAt: string;
@@ -25,7 +25,7 @@ interface Board {
 }
 
 const BoardManager: React.FC<{
-  boards: Board[];
+  boards: BoardType[];
   currentBoardId: string;
   onBoardSelect: (boardId: string) => void;
   onBoardCreate: (boardName: string) => void;
@@ -200,7 +200,7 @@ const BoardManager: React.FC<{
 
 export const Board: React.FC = () => {
  
-  const [savedBoards, setSavedBoards] = useLocalStorage<Board[]>('boards', [
+  const [savedBoards, setSavedBoards] = useLocalStorage<BoardType[]>('boards', [
     {
       id: 'default-board',
       name: 'Мой первый борд',
@@ -274,14 +274,14 @@ export const Board: React.FC = () => {
           : board
       ));
     }
-  }, [columns, cards, currentBoardId, setSavedBoardData, setSavedBoards]); 
+  }, [columns, cards, currentBoardId, setSavedBoardData, setSavedBoards, savedBoardData]); 
  
   const handleBoardSelect = useCallback((boardId: string) => {
     setCurrentBoardId(boardId);
-  }, []);
+  }, [savedBoardData]);
 
   const handleBoardCreate = useCallback((boardName: string) => {
-    const newBoard: Board = {
+    const newBoard: BoardType = {
       id: `board-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       name: boardName,
       createdAt: new Date().toISOString(),
