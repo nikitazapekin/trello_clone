@@ -274,11 +274,11 @@ export const Board: React.FC = () => {
           : board
       ));
     }
-  }, [columns, cards, currentBoardId, setSavedBoardData, setSavedBoards, savedBoardData]); 
+  }, [columns, cards, currentBoardId, setSavedBoardData, setSavedBoards, ]); 
  
   const handleBoardSelect = useCallback((boardId: string) => {
     setCurrentBoardId(boardId);
-  }, [savedBoardData]);
+  }, [ ]);
 
   const handleBoardCreate = useCallback((boardName: string) => {
     const newBoard: BoardType = {
