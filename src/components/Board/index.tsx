@@ -697,7 +697,7 @@ export const Board: React.FC = () => {
                 color: '#666',
                 cursor: 'pointer',
                 fontSize: '14px',
-                textAlign: 'center'
+               
               }}
             >
               + Добавить колонку
